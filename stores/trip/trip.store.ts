@@ -1,25 +1,26 @@
-import { TripService } from "@/services/trip.service";
-import { Trip, TripCreateInput } from "@/types/trip";
+// import { TripService } from "@/services/trip.service"; // TODO: Implement SQLite service
+import { LocationSample, Trip, TripCreateInput } from "@/types/trip";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
-import { devtools, persist } from "zustand/middleware";
+import { createJSONStorage, devtools, persist } from "zustand/middleware";
 
 interface TripState {
   // State
   trips: Trip[];
-  selectedTrip: Trip | null;
-  favoriteTrips: Trip[];
+  activeTrip: Trip | null;
+  locationHistory: LocationSample[];
   isLoading: boolean;
   error: string | null;
 
   // Actions
+  startTrip: (tripData: TripCreateInput) => Promise<Trip>;
+  endTrip: (tripId?: string) => Promise<void>;
+  triggerSOS: (tripId?: string) => Promise<void>;
+  updateTripStatus: (tripId: string, status: Trip["status"]) => void;
+  addLocationToTrip: (location: LocationSample) => void;
+  getLocationHistory: (tripId: string) => LocationSample[];
   fetchTrips: () => Promise<void>;
-  fetchTripById: (id: string) => Promise<void>;
-  createTrip: (tripData: TripCreateInput) => Promise<Trip>;
-  updateTrip: (tripData: Trip) => Promise<void>;
-  deleteTrip: (id: string) => Promise<void>;
-  toggleFavorite: (tripId: string) => void;
-  searchTrips: (query: string) => Promise<void>;
-  setSelectedTrip: (trip: Trip | null) => void;
+  clearLocationHistory: () => void;
   clearError: () => void;
 }
 
@@ -29,221 +30,237 @@ export const useTripStore = create<TripState>()(
       (set, get) => ({
         // Initial state
         trips: [],
-        selectedTrip: null,
-        favoriteTrips: [],
+        activeTrip: null,
+        locationHistory: [],
         isLoading: false,
-        error: null,
-
-        // Fetch all trips
-        fetchTrips: async () => {
+        error: null, // Start a new safety trip
+        startTrip: async (tripData: TripCreateInput) => {
           set({ isLoading: true, error: null });
+
           try {
-            const trips = await TripService.getAllTrips();
-            const favoriteTrips = trips.filter((trip) => trip.isFavorite);
+            const newTrip: Trip = {
+              id: Date.now().toString(),
+              userId: "current-user", // TODO: Get from auth
+              title: tripData.title,
+              origin: tripData.origin,
+              destination: tripData.destination,
+              status: "active",
+              startAt: new Date().toISOString(),
+              contacts: tripData.contacts,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+
+            // TODO: Save to SQLite via TripService
+            // const savedTrip = await TripService.createTrip(newTrip);
+
+            const trips = [...get().trips, newTrip];
             set({
               trips,
-              favoriteTrips,
-              isLoading: false,
-            });
-          } catch (error) {
-            set({
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to fetch trips",
-              isLoading: false,
-            });
-          }
-        },
-
-        // Fetch trip by ID
-        fetchTripById: async (id: string) => {
-          set({ isLoading: true, error: null });
-          try {
-            const trip = await TripService.getTripById(id);
-            set({
-              selectedTrip: trip,
-              isLoading: false,
-            });
-          } catch (error) {
-            set({
-              error:
-                error instanceof Error ? error.message : "Failed to fetch trip",
-              isLoading: false,
-            });
-          }
-        },
-
-        // Create new trip
-        createTrip: async (tripData: TripCreateInput) => {
-          set({ isLoading: true, error: null });
-          try {
-            const newTrip = await TripService.createTrip(tripData);
-            const { trips } = get();
-            const updatedTrips = [...trips, newTrip];
-
-            set({
-              trips: updatedTrips,
-              favoriteTrips: updatedTrips.filter((trip) => trip.isFavorite),
+              activeTrip: newTrip,
               isLoading: false,
             });
 
             return newTrip;
           } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : "Failed to start trip";
             set({
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to create trip",
+              error: errorMessage,
               isLoading: false,
             });
             throw error;
           }
         },
 
-        // Update existing trip
-        updateTrip: async (tripData: Trip) => {
+        // Fetch all trips
+        fetchTrips: async () => {
           set({ isLoading: true, error: null });
+
           try {
-            const updatedTrip = await TripService.updateTrip(
-              tripData.id,
-              tripData
-            );
-            const { trips } = get();
-            const updatedTrips = trips.map((trip) =>
-              trip.id === updatedTrip.id ? updatedTrip : trip
-            );
+            // TODO: Fetch from SQLite via TripService
+            // const trips = await TripService.getAllTrips();
+            const trips = get().trips; // Use existing for now
 
-            set({
-              trips: updatedTrips,
-              favoriteTrips: updatedTrips.filter((trip) => trip.isFavorite),
-              selectedTrip: updatedTrip,
-              isLoading: false,
-            });
-          } catch (error) {
-            set({
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to update trip",
-              isLoading: false,
-            });
-          }
-        },
-
-        // Delete trip
-        deleteTrip: async (id: string) => {
-          set({ isLoading: true, error: null });
-          try {
-            await TripService.deleteTrip(id);
-            const { trips } = get();
-            const updatedTrips = trips.filter((trip) => trip.id !== id);
-
-            set({
-              trips: updatedTrips,
-              favoriteTrips: updatedTrips.filter((trip) => trip.isFavorite),
-              selectedTrip: null,
-              isLoading: false,
-            });
-          } catch (error) {
-            set({
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to delete trip",
-              isLoading: false,
-            });
-          }
-        },
-
-        // Toggle favorite status
-        toggleFavorite: (tripId: string) => {
-          const { trips } = get();
-          const updatedTrips = trips.map((trip) =>
-            trip.id === tripId
-              ? { ...trip, isFavorite: !trip.isFavorite }
-              : trip
-          );
-
-          set({
-            trips: updatedTrips,
-            favoriteTrips: updatedTrips.filter((trip) => trip.isFavorite),
-          });
-
-          // Update on server
-          const updatedTrip = updatedTrips.find((trip) => trip.id === tripId);
-          if (updatedTrip) {
-            TripService.updateTrip(tripId, updatedTrip).catch((error) => {
-              console.error("Failed to update favorite status:", error);
-              // Revert the change on error
-              set({
-                trips: trips,
-                favoriteTrips: trips.filter((trip) => trip.isFavorite),
-              });
-            });
-          }
-        },
-
-        // Search trips
-        searchTrips: async (query: string) => {
-          set({ isLoading: true, error: null });
-          try {
-            const trips = await TripService.searchTrips(query);
             set({
               trips,
-              favoriteTrips: trips.filter((trip) => trip.isFavorite),
               isLoading: false,
             });
           } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : "Failed to fetch trips";
             set({
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to search trips",
+              error: errorMessage,
               isLoading: false,
             });
           }
+        }, // End the active trip
+        endTrip: async (tripId?: string) => {
+          set({ isLoading: true, error: null });
+
+          try {
+            const { activeTrip, trips } = get();
+            const targetTripId = tripId || activeTrip?.id;
+
+            if (!targetTripId) {
+              throw new Error("No active trip to end");
+            }
+
+            const updatedTrips = trips.map((trip) => {
+              if (trip.id === targetTripId) {
+                return {
+                  ...trip,
+                  status: "ended" as const,
+                  endAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                };
+              }
+              return trip;
+            });
+
+            // TODO: Update in SQLite via TripService
+            // await TripService.updateTrip(targetTripId, { status: 'ended' });
+
+            set({
+              trips: updatedTrips,
+              activeTrip: null,
+              isLoading: false,
+            });
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : "Failed to end trip";
+            set({
+              error: errorMessage,
+              isLoading: false,
+            });
+            throw error;
+          }
         },
 
-        // Set selected trip
-        setSelectedTrip: (trip: Trip | null) => {
-          set({ selectedTrip: trip });
+        // Trigger SOS for active trip
+        triggerSOS: async (tripId?: string) => {
+          set({ isLoading: true, error: null });
+
+          try {
+            const { activeTrip, trips } = get();
+            const targetTripId = tripId || activeTrip?.id;
+
+            if (!targetTripId) {
+              throw new Error("No active trip for SOS");
+            }
+
+            const updatedTrips = trips.map((trip) => {
+              if (trip.id === targetTripId) {
+                return {
+                  ...trip,
+                  status: "sos" as const,
+                  updatedAt: new Date().toISOString(),
+                };
+              }
+              return trip;
+            });
+
+            // TODO: Trigger SOS notifications via service
+            // await SOSService.triggerEmergency(targetTripId);
+
+            set({
+              trips: updatedTrips,
+              activeTrip:
+                updatedTrips.find((t) => t.id === targetTripId) || null,
+              isLoading: false,
+            });
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : "Failed to trigger SOS";
+            set({
+              error: errorMessage,
+              isLoading: false,
+            });
+            throw error;
+          }
         },
 
-        // Clear error
+        // Update trip status
+        updateTripStatus: (tripId: string, status: Trip["status"]) => {
+          const trips = get().trips.map((trip) => {
+            if (trip.id === tripId) {
+              return {
+                ...trip,
+                status,
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return trip;
+          });
+
+          const activeTrip = get().activeTrip;
+          const updatedActiveTrip =
+            activeTrip?.id === tripId
+              ? trips.find((t) => t.id === tripId) || null
+              : activeTrip;
+
+          set({
+            trips,
+            activeTrip: updatedActiveTrip,
+          });
+        },
+
+        // Add location sample to current trip
+        addLocationToTrip: (location: LocationSample) => {
+          const { activeTrip, locationHistory } = get();
+
+          if (activeTrip) {
+            const updatedLocation = {
+              ...location,
+              tripId: activeTrip.id,
+            };
+
+            set({
+              locationHistory: [...locationHistory, updatedLocation],
+            });
+
+            // TODO: Save to SQLite
+            // LocationService.addLocationSample(updatedLocation);
+          }
+        },
+
+        // Get location history for a trip
+        getLocationHistory: (tripId: string) => {
+          return get().locationHistory.filter(
+            (location) => location.tripId === tripId
+          );
+        },
+
+        // Clear location history
+        clearLocationHistory: () => {
+          set({ locationHistory: [] });
+        }, // Clear error
         clearError: () => {
           set({ error: null });
         },
       }),
       {
         name: "trip-store",
+        storage: createJSONStorage(() => AsyncStorage),
         partialize: (state) => ({
           trips: state.trips,
-          favoriteTrips: state.favoriteTrips,
+          activeTrip: state.activeTrip,
         }),
       }
     ),
-    {
-      name: "trip-store",
-    }
+    { name: "trip-store" }
   )
 );
 
-// Computed selectors
+// Computed selectors for safety app
 export const useTripSelectors = () => {
   const store = useTripStore();
 
   return {
     ...store,
-    upcomingTrips: store.trips.filter(
-      (trip) => new Date(trip.startDate) > new Date()
-    ),
-    pastTrips: store.trips.filter(
-      (trip) => new Date(trip.endDate) < new Date()
-    ),
-    currentTrips: store.trips.filter((trip) => {
-      const now = new Date();
-      return new Date(trip.startDate) <= now && new Date(trip.endDate) >= now;
-    }),
+    activeTrips: store.trips.filter((trip) => trip.status === "active"),
+    completedTrips: store.trips.filter((trip) => trip.status === "ended"),
+    sosTrips: store.trips.filter((trip) => trip.status === "sos"),
+    hasActiveTrip: !!store.activeTrip && store.activeTrip.status === "active",
   };
 };

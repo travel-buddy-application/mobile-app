@@ -1,30 +1,39 @@
-// Trip related types
+// Safety Trip related types
 export interface Trip {
   id: string;
-  title: string;
-  destination: string;
-  description: string;
-  startDate: string; // ISO date string
-  endDate: string; // ISO date string
-  budget: number;
-  imageUrl: string;
-  activities: string[];
-  isFavorite: boolean;
-  isCompleted: boolean;
+  userId: string;
+  title?: string;
+  origin: {
+    lat: number;
+    lng: number;
+    address?: string;
+  };
+  destination: {
+    lat: number;
+    lng: number;
+    address?: string;
+  };
+  status: "idle" | "active" | "ended" | "sos";
+  startAt: string; // ISO date string
+  endAt?: string; // ISO date string
+  contacts: string[]; // Contact IDs
   createdAt: string;
   updatedAt: string;
-  userId: string;
 }
 
 export interface TripCreateInput {
-  title: string;
-  destination: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  budget: number;
-  activities: string[];
-  imageUrl?: string;
+  title?: string;
+  origin: {
+    lat: number;
+    lng: number;
+    address?: string;
+  };
+  destination: {
+    lat: number;
+    lng: number;
+    address?: string;
+  };
+  contacts: string[]; // Contact IDs
 }
 
 export interface TripUpdateInput {
@@ -113,6 +122,24 @@ export interface UserPreferences {
   };
 }
 
+// Contact types
+export interface Contact {
+  id: string;
+  displayName: string;
+  phone: string;
+  pushToken?: string;
+  sharingPolicy: "location" | "alerts" | "all";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContactCreateInput {
+  displayName: string;
+  phone: string;
+  pushToken?: string;
+  sharingPolicy: "location" | "alerts" | "all";
+}
+
 // Location types
 export interface Location {
   id: string;
@@ -131,6 +158,27 @@ export interface Coordinates {
   longitude: number;
 }
 
+export interface LocationSample {
+  id: string;
+  tripId: string;
+  timestamp: number;
+  lat: number;
+  lng: number;
+  speed?: number;
+  accuracy: number;
+  source: "gps" | "network" | "passive";
+  createdAt: string;
+}
+
+export interface LocationState {
+  currentLocation: LocationSample | null;
+  isTracking: boolean;
+  accuracy: number;
+  serviceStatus: "stopped" | "starting" | "running" | "error";
+  lastUpdate: number;
+  permissionStatus: "granted" | "denied" | "undetermined";
+}
+
 // Weather types
 export interface WeatherInfo {
   location: string;
@@ -144,6 +192,38 @@ export interface WeatherInfo {
   humidity: number;
   windSpeed: number;
   icon: string;
+}
+
+// Risk Engine types
+export interface RuleState {
+  lastOkPromptAt: number;
+  missedOkCount: number;
+  inactivitySince?: number;
+  deviationFlag: boolean;
+  escalationLevel: "none" | "warning" | "countdown" | "sos";
+  lastCheckIn: number;
+  nextCheckInDue: number;
+}
+
+export interface RiskSettings {
+  checkInInterval: number; // minutes
+  inactivityThreshold: number; // minutes
+  deviationRadius: number; // meters
+  maxMissedCheckIns: number;
+  countdownDuration: number; // seconds
+}
+
+// Outbound Event Queue types
+export interface OutboundEvent {
+  id: string;
+  type: "push" | "sms";
+  payload: any;
+  attempts: number;
+  maxAttempts: number;
+  status: "pending" | "sending" | "sent" | "failed";
+  createdAt: string;
+  lastAttemptAt?: string;
+  scheduledFor?: string;
 }
 
 // Search and filter types
