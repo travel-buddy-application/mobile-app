@@ -178,10 +178,12 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
+    marginTop: 50,
     alignItems: "center",
     marginBottom: 30,
   },
   appTitle: {
+    padding: 10,
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 8,

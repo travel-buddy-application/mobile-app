@@ -9,6 +9,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -100,128 +101,133 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
     }
   };
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={[styles.container, { backgroundColor }]}>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {/* Header */}
-        <ThemedView style={styles.header}>
-          <ThemedText style={styles.emoji}>🧳</ThemedText>
-          <ThemedText type="title" style={styles.title}>
-            Welcome to Travel Buddy
-          </ThemedText>
-          <ThemedText type="subtitle" style={styles.subtitle}>
-            Your safety companion on every journey
-          </ThemedText>
-        </ThemedView>
-        {/* Form */}
-        <ThemedView style={styles.form}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Let&apos;s get to know you
-          </ThemedText>
-          {/* Name Input */}
-          <ThemedView style={styles.inputGroup}>
-            <ThemedText style={styles.label}>What&apos;s your name?</ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: inputBackgroundColor,
-                  borderColor: inputBorderColor,
-                  color: textColor,
-                },
-                errors.name && styles.inputError,
-              ]}
-              placeholder="Enter your full name"
-              placeholderTextColor={placeholderTextColor}
-              value={formData.name}
-              onChangeText={(value) => updateField("name", value)}
-              autoCapitalize="words"
-              autoComplete="name"
-              textContentType="name"
-            />
-            {errors.name && (
-              <ThemedText style={styles.errorText}>{errors.name}</ThemedText>
-            )}
-          </ThemedView>
-          {/* Phone Input */}
-          <ThemedView style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Phone number</ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: inputBackgroundColor,
-                  borderColor: inputBorderColor,
-                  color: textColor,
-                },
-                errors.phone && styles.inputError,
-              ]}
-              placeholder="+1 (555) 123-4567"
-              placeholderTextColor={placeholderTextColor}
-              value={formData.phone}
-              onChangeText={(value) => updateField("phone", value)}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              textContentType="telephoneNumber"
-            />
-            {errors.phone && (
-              <ThemedText style={styles.errorText}>{errors.phone}</ThemedText>
-            )}
-          </ThemedView>
-          {/* Email Input (Optional) */}
-          <ThemedView style={styles.inputGroup}>
-            <ThemedText style={styles.label}>
-              Email address
-              <ThemedText style={styles.optional}>(optional)</ThemedText>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <ThemedView style={styles.header}>
+            <ThemedText style={styles.emoji}>🧳</ThemedText>
+            <ThemedText type="title" style={styles.title}>
+              Welcome to Travel Buddy
             </ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: inputBackgroundColor,
-                  borderColor: inputBorderColor,
-                  color: textColor,
-                },
-                errors.email && styles.inputError,
-              ]}
-              placeholder="your@email.com"
-              placeholderTextColor={placeholderTextColor}
-              value={formData.email}
-              onChangeText={(value) => updateField("email", value)}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              textContentType="emailAddress"
-            />
-            {errors.email && (
-              <ThemedText style={styles.errorText}>{errors.email}</ThemedText>
-            )}
+            <ThemedText type="subtitle" style={styles.subtitle}>
+              Your safety companion on every journey
+            </ThemedText>
           </ThemedView>
-          {/* Error Message */}
-          {error && (
-            <ThemedView style={styles.errorContainer}>
-              <ThemedText style={styles.errorText}>{error}</ThemedText>
+          {/* Form */}
+          <ThemedView style={styles.form}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Let&apos;s get to know you
+            </ThemedText>
+            {/* Name Input */}
+            <ThemedView style={styles.inputGroup}>
+              <ThemedText style={styles.label}>
+                What&apos;s your name?
+              </ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: inputBackgroundColor,
+                    borderColor: inputBorderColor,
+                    color: textColor,
+                  },
+                  errors.name && styles.inputError,
+                ]}
+                placeholder="Enter your full name"
+                placeholderTextColor={placeholderTextColor}
+                value={formData.name}
+                onChangeText={(value) => updateField("name", value)}
+                autoCapitalize="words"
+                autoComplete="name"
+                textContentType="name"
+              />
+              {errors.name && (
+                <ThemedText style={styles.errorText}>{errors.name}</ThemedText>
+              )}
             </ThemedView>
-          )}
-          {/* Continue Button */}
-          <ThemedButton
-            title={isLoading ? "Creating Profile..." : "Continue"}
-            onPress={handleContinue}
-            disabled={isLoading}
-            style={styles.continueButton}
-          />
-          {/* Info Text */}
-          <ThemedText style={styles.infoText}>
-            This information helps us identify you in case of emergencies.
-          </ThemedText>
-        </ThemedView>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            {/* Phone Input */}
+            <ThemedView style={styles.inputGroup}>
+              <ThemedText style={styles.label}>Phone number</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: inputBackgroundColor,
+                    borderColor: inputBorderColor,
+                    color: textColor,
+                  },
+                  errors.phone && styles.inputError,
+                ]}
+                placeholder="+1 (555) 123-4567"
+                placeholderTextColor={placeholderTextColor}
+                value={formData.phone}
+                onChangeText={(value) => updateField("phone", value)}
+                keyboardType="phone-pad"
+                autoComplete="tel"
+                textContentType="telephoneNumber"
+              />
+              {errors.phone && (
+                <ThemedText style={styles.errorText}>{errors.phone}</ThemedText>
+              )}
+            </ThemedView>
+            {/* Email Input (Optional) */}
+            <ThemedView style={styles.inputGroup}>
+              <ThemedText style={styles.label}>
+                Email address
+                <ThemedText style={styles.optional}>(optional)</ThemedText>
+              </ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: inputBackgroundColor,
+                    borderColor: inputBorderColor,
+                    color: textColor,
+                  },
+                  errors.email && styles.inputError,
+                ]}
+                placeholder="your@email.com"
+                placeholderTextColor={placeholderTextColor}
+                value={formData.email}
+                onChangeText={(value) => updateField("email", value)}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
+              />
+              {errors.email && (
+                <ThemedText style={styles.errorText}>{errors.email}</ThemedText>
+              )}
+            </ThemedView>
+            {/* Error Message */}
+            {error && (
+              <ThemedView style={styles.errorContainer}>
+                <ThemedText style={styles.errorText}>{error}</ThemedText>
+              </ThemedView>
+            )}
+            {/* Continue Button */}
+            <ThemedButton
+              title={isLoading ? "Creating Profile..." : "Continue"}
+              onPress={handleContinue}
+              disabled={isLoading}
+              style={styles.continueButton}
+            />
+            {/* Info Text */}
+            <ThemedText style={styles.infoText}>
+              This information helps us identify you in case of emergencies.
+            </ThemedText>
+          </ThemedView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -229,16 +235,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  keyboardView: {
+    flex: 1,
+  },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
   },
   header: {
     alignItems: "center",
-    marginTop: 60,
-    marginBottom: 40,
+    marginTop: 50,
+    marginBottom: 32,
   },
   emoji: {
+    padding: 30,
     fontSize: 48,
     marginBottom: 16,
   },
