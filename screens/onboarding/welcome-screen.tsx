@@ -1,0 +1,318 @@
+import { ThemedButton } from "@/components/themed-button";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { useAuthStore } from "@/stores";
+import { UserCreateInput } from "@/types/user";
+import React, { useState } from "react";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+} from "react-native";
+
+interface WelcomeScreenProps {
+  onComplete: () => void;
+}
+
+export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
+  const { createUserProfile, isLoading, error, clearError } = useAuthStore();
+
+  // Theme colors
+  const backgroundColor = useThemeColor({}, "background");
+  const textColor = useThemeColor({}, "text");
+  const inputBackgroundColor = useThemeColor(
+    { light: "#f9f9f9", dark: "#2a2a2a" },
+    "background"
+  );
+  const inputBorderColor = useThemeColor(
+    { light: "#ddd", dark: "#555" },
+    "text"
+  );
+  const placeholderTextColor = useThemeColor(
+    { light: "#999", dark: "#888" },
+    "text"
+  );
+
+  const [formData, setFormData] = useState<UserCreateInput>({
+    name: "",
+    phone: "",
+    email: "",
+  });
+
+  const [errors, setErrors] = useState<Partial<UserCreateInput>>({});
+
+  const validateForm = (): boolean => {
+    const newErrors: Partial<UserCreateInput> = {};
+
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required";
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = "Name must be at least 2 characters";
+    }
+
+    // Phone validation
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required";
+    } else if (!/^\+?[\d\s\-\(\)]{10,}$/.test(formData.phone.trim())) {
+      newErrors.phone = "Please enter a valid phone number";
+    }
+
+    // Email validation (optional)
+    if (formData.email && formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        newErrors.email = "Please enter a valid email address";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleContinue = async () => {
+    clearError();
+
+    if (!validateForm()) {
+      return;
+    }
+    try {
+      await createUserProfile(formData);
+      onComplete();
+    } catch (error) {
+      console.error("Profile creation failed:", error);
+      Alert.alert("Error", "Failed to create profile. Please try again.", [
+        { text: "OK" },
+      ]);
+    }
+  };
+
+  const updateField = (field: keyof UserCreateInput, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+
+    // Clear field error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+  return (
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor }]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header */}
+        <ThemedView style={styles.header}>
+          <ThemedText style={styles.emoji}>🧳</ThemedText>
+          <ThemedText type="title" style={styles.title}>
+            Welcome to Travel Buddy
+          </ThemedText>
+          <ThemedText type="subtitle" style={styles.subtitle}>
+            Your safety companion on every journey
+          </ThemedText>
+        </ThemedView>
+        {/* Form */}
+        <ThemedView style={styles.form}>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Let&apos;s get to know you
+          </ThemedText>
+          {/* Name Input */}
+          <ThemedView style={styles.inputGroup}>
+            <ThemedText style={styles.label}>What&apos;s your name?</ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: inputBackgroundColor,
+                  borderColor: inputBorderColor,
+                  color: textColor,
+                },
+                errors.name && styles.inputError,
+              ]}
+              placeholder="Enter your full name"
+              placeholderTextColor={placeholderTextColor}
+              value={formData.name}
+              onChangeText={(value) => updateField("name", value)}
+              autoCapitalize="words"
+              autoComplete="name"
+              textContentType="name"
+            />
+            {errors.name && (
+              <ThemedText style={styles.errorText}>{errors.name}</ThemedText>
+            )}
+          </ThemedView>
+          {/* Phone Input */}
+          <ThemedView style={styles.inputGroup}>
+            <ThemedText style={styles.label}>Phone number</ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: inputBackgroundColor,
+                  borderColor: inputBorderColor,
+                  color: textColor,
+                },
+                errors.phone && styles.inputError,
+              ]}
+              placeholder="+1 (555) 123-4567"
+              placeholderTextColor={placeholderTextColor}
+              value={formData.phone}
+              onChangeText={(value) => updateField("phone", value)}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              textContentType="telephoneNumber"
+            />
+            {errors.phone && (
+              <ThemedText style={styles.errorText}>{errors.phone}</ThemedText>
+            )}
+          </ThemedView>
+          {/* Email Input (Optional) */}
+          <ThemedView style={styles.inputGroup}>
+            <ThemedText style={styles.label}>
+              Email address
+              <ThemedText style={styles.optional}>(optional)</ThemedText>
+            </ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                {
+                  backgroundColor: inputBackgroundColor,
+                  borderColor: inputBorderColor,
+                  color: textColor,
+                },
+                errors.email && styles.inputError,
+              ]}
+              placeholder="your@email.com"
+              placeholderTextColor={placeholderTextColor}
+              value={formData.email}
+              onChangeText={(value) => updateField("email", value)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              textContentType="emailAddress"
+            />
+            {errors.email && (
+              <ThemedText style={styles.errorText}>{errors.email}</ThemedText>
+            )}
+          </ThemedView>
+          {/* Error Message */}
+          {error && (
+            <ThemedView style={styles.errorContainer}>
+              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            </ThemedView>
+          )}
+          {/* Continue Button */}
+          <ThemedButton
+            title={isLoading ? "Creating Profile..." : "Continue"}
+            onPress={handleContinue}
+            disabled={isLoading}
+            style={styles.continueButton}
+          />
+          {/* Info Text */}
+          <ThemedText style={styles.infoText}>
+            This information helps us identify you in case of emergencies.
+          </ThemedText>
+        </ThemedView>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 24,
+  },
+  header: {
+    alignItems: "center",
+    marginTop: 60,
+    marginBottom: 40,
+  },
+  emoji: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 16,
+    textAlign: "center",
+  },
+  form: {
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 8,
+  },
+  optional: {
+    fontSize: 14,
+    fontWeight: "normal",
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+  },
+  inputError: {
+    borderColor: "#ff4757",
+    backgroundColor: "#fff5f5",
+  },
+  errorText: {
+    color: "#ff4757",
+    fontSize: 14,
+    marginTop: 4,
+  },
+  errorContainer: {
+    backgroundColor: "#fff5f5",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  continueButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  continueButtonDisabled: {
+    backgroundColor: "#ccc",
+  },
+  continueButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  infoText: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+    marginTop: 8,
+  },
+});

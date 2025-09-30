@@ -1,20 +1,35 @@
-# Welcome to your Expo app 👋
+# 🧳 Travel Buddy - Safety Travel App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A lightweight Android-first safety app that provides protected trips, location sharing, risk detection, and emergency SOS capabilities with privacy in mind.
 
-## Get started
+Built with React Native, TypeScript, and Expo.
 
-1. Install dependencies
+## ✨ Features
+
+- **🛡️ Safe Travel**: Start protected trips with safety monitoring
+- **📍 Location Sharing**: Real-time location sharing with emergency contacts
+- **⚠️ Risk Detection**: Smart monitoring for route deviations and inactivity
+- **🆘 Emergency SOS**: Instant alert system with SMS and push notifications
+- **🔒 Privacy First**: Encrypted storage, data stays on device
+- **📱 Clean UI**: Modern, intuitive interface focused on safety
+
+## 🚀 Quick Start
+
+1. **Install dependencies**
 
    ```bash
    npm install
    ```
 
-2. Start the app
+2. **Start the development server**
 
    ```bash
    npx expo start
    ```
+
+3. **Open on your device**
+   - Scan QR code with Expo Go app
+   - Or press `a` for Android emulator
 
 In the output, you'll find options to open the app in a
 
