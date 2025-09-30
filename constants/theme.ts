@@ -22,6 +22,11 @@ export const Colors = {
     successButtonText: "#fff",
     deleteButtonBackground: "#dc3545",
     deleteButtonText: "#fff",
+    inputBackground: "#F5F7FA",
+    inputBorder: "#D1D5DB",
+    inputPlaceholder: "#9CA3AF",
+    error: "#dc3545",
+    primary: "#0a7ea4",
   },
   dark: {
     text: "#ECEDEE",
@@ -36,6 +41,11 @@ export const Colors = {
     successButtonText: "#fff",
     deleteButtonBackground: "#dc3545",
     deleteButtonText: "#fff",
+    inputBackground: "#1E2022",
+    inputBorder: "#3F4143",
+    inputPlaceholder: "#6B7280",
+    error: "#dc3545",
+    primary: "#0a7ea4",
   },
 };
 
