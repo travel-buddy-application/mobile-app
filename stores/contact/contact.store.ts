@@ -11,7 +11,6 @@ interface ContactStoreState {
   selectedContacts: string[]; // Contact IDs for current trip
   isLoading: boolean;
   error: string | null;
-
   // Actions
   addContact: (contact: ContactCreateInput) => Promise<string>;
   updateContact: (id: string, updates: Partial<Contact>) => Promise<void>;
@@ -20,6 +19,7 @@ interface ContactStoreState {
   deselectContact: (id: string) => void;
   selectAllContacts: () => void;
   clearSelectedContacts: () => void;
+  clearAllContacts: () => Promise<void>;
   getContactById: (id: string) => Contact | undefined;
   syncContactKeys: () => Promise<void>;
   clearError: () => void;
@@ -218,6 +218,47 @@ export const useContactStore = create<ContactStoreState>()(
               error instanceof Error
                 ? error.message
                 : "Failed to sync contact keys";
+            set({
+              error: errorMessage,
+              isLoading: false,
+            });
+            throw error;
+          }
+        }, // Clear all contacts (for logout/reset)
+        clearAllContacts: async () => {
+          set({ isLoading: true, error: null });
+
+          try {
+            const { contacts } = get();
+
+            // Clear all contact keys from SecureStore
+            for (const contact of contacts) {
+              try {
+                await SecureStore.deleteItemAsync(`contact_key_${contact.id}`);
+                if (contact.pushToken) {
+                  await SecureStore.deleteItemAsync(
+                    `contact_token_${contact.id}`
+                  );
+                }
+              } catch (err) {
+                console.warn(
+                  `Failed to clear secure data for contact ${contact.id}:`,
+                  err
+                );
+              }
+            }
+
+            // Clear contacts from state
+            set({
+              contacts: [],
+              selectedContacts: [],
+              isLoading: false,
+            });
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : "Failed to clear contacts";
             set({
               error: errorMessage,
               isLoading: false,

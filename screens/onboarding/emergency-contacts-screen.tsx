@@ -2,7 +2,7 @@ import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { useContactStore } from "@/stores";
+import { useAuthStore, useContactStore } from "@/stores";
 import { ContactCreateInput } from "@/types/trip";
 import React, { useState } from "react";
 import {
@@ -24,8 +24,9 @@ interface EmergencyContactsScreenProps {
 export const EmergencyContactsScreen: React.FC<
   EmergencyContactsScreenProps
 > = ({ onComplete, onSkip }) => {
-  const { contacts, addContact, isLoading, error, clearError } =
+  const { contacts, addContact, deleteContact, isLoading, error, clearError } =
     useContactStore();
+  const { completeOnboardingStep } = useAuthStore();
 
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");
@@ -110,6 +111,35 @@ export const EmergencyContactsScreen: React.FC<
       );
     }
   };
+  const handleDeleteContact = async (
+    contactId: string,
+    contactName: string
+  ) => {
+    Alert.alert(
+      "Remove Contact",
+      `Are you sure you want to remove ${contactName} from your emergency contacts?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteContact(contactId);
+              Alert.alert("Success", "Emergency contact removed successfully!");
+            } catch (error) {
+              console.error("Failed to delete contact:", error);
+              Alert.alert(
+                "Error",
+                "Failed to remove emergency contact. Please try again.",
+                [{ text: "OK" }]
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const updateField = (field: keyof ContactCreateInput, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -119,8 +149,10 @@ export const EmergencyContactsScreen: React.FC<
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
-
   const handleContinue = () => {
+    // Mark contacts step as complete
+    completeOnboardingStep("contacts");
+
     if (contacts.length === 0) {
       Alert.alert(
         "No Emergency Contacts",
@@ -138,8 +170,10 @@ export const EmergencyContactsScreen: React.FC<
       onComplete();
     }
   };
-
   const handleSkip = () => {
+    // Mark contacts step as complete even when skipped
+    completeOnboardingStep("contacts");
+
     if (onSkip) {
       onSkip();
     } else {
@@ -173,7 +207,6 @@ export const EmergencyContactsScreen: React.FC<
             <ThemedText type="subtitle" style={styles.sectionTitle}>
               Your Emergency Contacts ({contacts.length})
             </ThemedText>
-
             {contacts.length > 0 ? (
               contacts.map((contact) => (
                 <ThemedView
@@ -197,7 +230,18 @@ export const EmergencyContactsScreen: React.FC<
                       Sharing: {contact.sharingPolicy}
                     </ThemedText>
                   </ThemedView>
-                  <ThemedText style={styles.contactIcon}>👤</ThemedText>
+                  <ThemedView style={styles.contactActions}>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() =>
+                        handleDeleteContact(contact.id, contact.displayName)
+                      }
+                    >
+                      <ThemedText style={styles.deleteButtonText}>
+                        🗑️
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </ThemedView>
                 </ThemedView>
               ))
             ) : (
@@ -488,6 +532,22 @@ const styles = StyleSheet.create({
   contactIcon: {
     padding: 10,
     fontSize: 24,
+  },
+  contactActions: {
+    marginLeft: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "transparent",
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#ff4757",
+  },
+  deleteButtonText: {
+    fontSize: 16,
+    color: "#fff",
   },
   emptyState: {
     padding: 24,

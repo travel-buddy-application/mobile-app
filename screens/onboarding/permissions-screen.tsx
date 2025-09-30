@@ -2,8 +2,9 @@ import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import React from "react";
-import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
+import { useAuthStore, usePermissionsStore } from "@/stores";
+import React, { useState } from "react";
+import { Alert, SafeAreaView, ScrollView, StyleSheet } from "react-native";
 
 interface PermissionsScreenProps {
   onComplete: () => void;
@@ -13,11 +14,76 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
   onComplete,
 }) => {
   const backgroundColor = useThemeColor({}, "background");
+  const { completeOnboardingStep, completeOnboarding } = useAuthStore();
+  const { requestAllPermissions } = usePermissionsStore();
+  const [isRequestingPermissions, setIsRequestingPermissions] = useState(false);
 
-  const handleGrantPermissions = () => {
-    // In a real implementation, this would request actual permissions
-    // For now, we'll just complete the onboarding
-    onComplete();
+  const handleGrantPermissions = async () => {
+    setIsRequestingPermissions(true);
+
+    try {
+      // Use permissions store to request all permissions
+      const grantedPermissions = await requestAllPermissions();
+
+      // Show feedback based on results
+      if (!grantedPermissions.location) {
+        Alert.alert(
+          "Location Permission",
+          "Location access is recommended for safety monitoring. You can enable it later in Settings.",
+          [{ text: "OK" }]
+        );
+      }
+
+      if (!grantedPermissions.notifications) {
+        Alert.alert(
+          "Notification Permission",
+          "Notifications help us send safety alerts. You can enable them later in Settings.",
+          [{ text: "OK" }]
+        );
+      } // Show success message if both permissions granted
+      if (grantedPermissions.location && grantedPermissions.notifications) {
+        Alert.alert(
+          "Permissions Granted",
+          "Great! All permissions have been granted. Travel Buddy is ready to keep you safe.",
+          [{ text: "Continue" }]
+        );
+      }
+
+      // Special message for Expo Go users
+      if (
+        grantedPermissions.location &&
+        grantedPermissions.notifications === true
+      ) {
+        Alert.alert(
+          "Demo Mode",
+          "You're using Expo Go! Location permissions work, but notifications are simulated. Use a development build for full functionality.",
+          [{ text: "Continue" }]
+        );
+      }
+
+      // Complete onboarding regardless of permission results
+      completeOnboardingStep("permissions");
+      completeOnboarding();
+      onComplete();
+    } catch (error) {
+      console.error("Error requesting permissions:", error);
+      Alert.alert(
+        "Permission Error",
+        "There was an issue requesting permissions. You can set them up later in device settings.",
+        [
+          {
+            text: "Continue Anyway",
+            onPress: () => {
+              completeOnboardingStep("permissions");
+              completeOnboarding();
+              onComplete();
+            },
+          },
+        ]
+      );
+    } finally {
+      setIsRequestingPermissions(false);
+    }
   };
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
@@ -83,8 +149,13 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
         {/* Action Buttons */}
         <ThemedView style={styles.actionButtons}>
           <ThemedButton
-            title="Grant Permissions & Complete Setup"
+            title={
+              isRequestingPermissions
+                ? "Requesting Permissions..."
+                : "Grant Permissions & Complete Setup"
+            }
             onPress={handleGrantPermissions}
+            disabled={isRequestingPermissions}
             style={styles.grantButton}
             textStyle={styles.grantButtonText}
           />

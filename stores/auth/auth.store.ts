@@ -29,6 +29,15 @@ interface AuthState {
   loadUserFromStorage: () => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
+
+  // Debug helpers
+  resetOnboarding: () => void;
+  getOnboardingStatus: () => {
+    isOnboarded: boolean;
+    currentOnboardingStep: OnboardingSteps;
+    completedSteps: OnboardingSteps[];
+    hasUser: boolean;
+  };
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -237,14 +246,23 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false,
             });
           }
-        },
-
-        // Logout and clear user data
+        }, // Logout and clear user data
         logout: async () => {
           set({ isLoading: true, error: null });
 
           try {
+            // Clear user profile from SecureStore
             await SecureStore.deleteItemAsync("user_profile");
+
+            // Clear contacts from contact store
+            try {
+              const { useContactStore } = await import(
+                "../contact/contact.store"
+              );
+              await useContactStore.getState().clearAllContacts();
+            } catch (err) {
+              console.warn("Failed to clear contacts during logout:", err);
+            }
 
             set({
               user: null,
@@ -266,6 +284,25 @@ export const useAuthStore = create<AuthState>()(
         // Clear error
         clearError: () => {
           set({ error: null });
+        },
+
+        // Debug helpers for development/testing
+        resetOnboarding: () => {
+          set({
+            isOnboarded: false,
+            currentOnboardingStep: "profile",
+            completedSteps: [],
+          });
+        },
+
+        getOnboardingStatus: () => {
+          const { isOnboarded, currentOnboardingStep, completedSteps } = get();
+          return {
+            isOnboarded,
+            currentOnboardingStep,
+            completedSteps,
+            hasUser: !!get().user,
+          };
         },
       }),
       {

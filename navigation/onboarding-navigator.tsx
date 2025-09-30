@@ -14,8 +14,9 @@ export const OnboardingNavigator: React.FC = () => {
   const handleContactsComplete = () => {
     setOnboardingStep("permissions");
   };
-
   const handlePermissionsComplete = () => {
+    // The permissions screen handles completion internally
+    // This is just a fallback in case it's needed
     setOnboardingStep("completed");
   };
 
