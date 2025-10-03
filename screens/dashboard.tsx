@@ -4,7 +4,8 @@ import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAuthStore, useTripStore } from "@/stores";
 import React from "react";
-import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
+import { ScrollView, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export const DashboardScreen: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -12,14 +13,9 @@ export const DashboardScreen: React.FC = () => {
 
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");
-  const cardBackgroundColor = useThemeColor(
-    { light: "#fff", dark: "#2a2a2a" },
-    "background"
-  );
-  const borderColor = useThemeColor(
-    { light: "#f0f0f0", dark: "#404040" },
-    "text"
-  );
+  const cardBackgroundColor = useThemeColor({}, "cardBackgroundColor");
+  const borderColor = useThemeColor({}, "cardBorderColor");
+  const textColor = useThemeColor({}, "primaryButtonText");
   const handleStartTrip = async () => {
     try {
       await startTrip({
@@ -80,13 +76,18 @@ export const DashboardScreen: React.FC = () => {
         <ThemedView style={styles.tripContainer}>
           {activeTrip ? (
             <ThemedView style={styles.activeTripCard}>
-              <ThemedText type="subtitle" style={styles.activeTripTitle}>
+              <ThemedText
+                type="subtitle"
+                style={[styles.activeTripTitle, { color: textColor }]}
+              >
                 🚗 Active Trip
               </ThemedText>
-              <ThemedText style={styles.activeTripSubtitle}>
+              <ThemedText
+                style={[styles.activeTripSubtitle, { color: textColor }]}
+              >
                 Status: {activeTrip.status}
               </ThemedText>
-              <ThemedText style={styles.activeTripTime}>
+              <ThemedText style={[styles.activeTripTime, { color: textColor }]}>
                 Started: {new Date(activeTrip.startAt).toLocaleTimeString()}
               </ThemedText>
               <ThemedButton

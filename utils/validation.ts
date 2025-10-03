@@ -6,7 +6,7 @@
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Phone number validation (basic international format)
-const PHONE_REGEX = /^\+?[\d\s\-\(\)]+$/;
+const PHONE_REGEX = /^\+?[\d\s\-\(\)]{10,}$/;
 
 // URL validation regex
 const URL_REGEX =

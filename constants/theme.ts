@@ -22,6 +22,13 @@ export const Colors = {
     successButtonText: "#fff",
     deleteButtonBackground: "#dc3545",
     deleteButtonText: "#fff",
+
+    // Emergency Contacts
+    cardBackgroundColor: "#fff",
+    inputBackgroundColor: "#f9f9f9",
+    inputBorderColor: "#ddd",
+    placeholderTextColor: "#999",
+    cardBorderColor: "#f0f0f0",
   },
   dark: {
     text: "#ECEDEE",
@@ -36,6 +43,13 @@ export const Colors = {
     successButtonText: "#fff",
     deleteButtonBackground: "#dc3545",
     deleteButtonText: "#fff",
+
+    // Emergency Contacts
+    cardBackgroundColor: "#2a2a2a",
+    inputBackgroundColor: "#2a2a2a",
+    inputBorderColor: "#555",
+    placeholderTextColor: "#888",
+    cardBorderColor: "#404040",
   },
 };
 

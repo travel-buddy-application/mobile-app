@@ -1,9 +1,12 @@
+import { emailService } from "@/services/email.service";
 import { Contact, ContactCreateInput } from "@/types/trip";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 import { createJSONStorage, devtools, persist } from "zustand/middleware";
+import { useAuthStore } from "../auth/auth.store";
+const { user } = useAuthStore.getState();
 
 interface ContactStoreState {
   // State
@@ -11,6 +14,7 @@ interface ContactStoreState {
   selectedContacts: string[]; // Contact IDs for current trip
   isLoading: boolean;
   error: string | null;
+  showAddForm: boolean;
   // Actions
   addContact: (contact: ContactCreateInput) => Promise<string>;
   updateContact: (id: string, updates: Partial<Contact>) => Promise<void>;
@@ -23,6 +27,7 @@ interface ContactStoreState {
   getContactById: (id: string) => Contact | undefined;
   syncContactKeys: () => Promise<void>;
   clearError: () => void;
+  setShowAddForm: (show: boolean) => void;
 }
 
 export const useContactStore = create<ContactStoreState>()(
@@ -34,6 +39,8 @@ export const useContactStore = create<ContactStoreState>()(
         selectedContacts: [],
         isLoading: false,
         error: null,
+        showAddForm: false,
+        setShowAddForm: (show: boolean) => set({ showAddForm: show }),
 
         // Add new contact
         addContact: async (contactData: ContactCreateInput) => {
@@ -45,6 +52,7 @@ export const useContactStore = create<ContactStoreState>()(
               ...contactData,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
+              status: "pending",
             };
 
             // Store contact in secure storage if has push token
@@ -54,6 +62,13 @@ export const useContactStore = create<ContactStoreState>()(
                 newContact.pushToken
               );
             }
+            await emailService({
+              contactPerson: newContact.displayName,
+              person: user?.name || "Your Friend",
+              receiverEmail: newContact.email,
+              dashboardUrl: "https://google.com",
+              sharingPolicy: newContact.sharingPolicy,
+            });
 
             const contacts = [...get().contacts, newContact];
             set({
