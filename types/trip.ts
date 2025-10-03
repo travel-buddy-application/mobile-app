@@ -131,6 +131,8 @@ export interface Contact {
   sharingPolicy: "location" | "alerts" | "all";
   createdAt: string;
   updatedAt: string;
+  email: string;
+  status: "pending" | "accepted" | "blocked";
 }
 
 export interface ContactCreateInput {
@@ -138,6 +140,7 @@ export interface ContactCreateInput {
   phone: string;
   pushToken?: string;
   sharingPolicy: "location" | "alerts" | "all";
+  email: string;
 }
 
 // Location types

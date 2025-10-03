@@ -4,16 +4,21 @@ import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAuthStore } from "@/stores";
 import { UserCreateInput } from "@/types/user";
+import {
+  isRequired,
+  isValidEmail,
+  isValidPhoneNumber,
+} from "@/utils/validation";
 import React, { useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   TextInput,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface WelcomeScreenProps {
   onComplete: () => void;
@@ -25,18 +30,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
-  const inputBackgroundColor = useThemeColor(
-    { light: "#f9f9f9", dark: "#2a2a2a" },
-    "background"
-  );
-  const inputBorderColor = useThemeColor(
-    { light: "#ddd", dark: "#555" },
-    "text"
-  );
-  const placeholderTextColor = useThemeColor(
-    { light: "#999", dark: "#888" },
-    "text"
-  );
+  const inputBackgroundColor = useThemeColor({}, "inputBackgroundColor");
+  const inputBorderColor = useThemeColor({}, "inputBorderColor");
+  const placeholderTextColor = useThemeColor({}, "placeholderTextColor");
 
   const [formData, setFormData] = useState<UserCreateInput>({
     name: "",
@@ -50,25 +46,22 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
     const newErrors: Partial<UserCreateInput> = {};
 
     // Name validation
-    if (!formData.name.trim()) {
+    if (!isRequired(formData.name)) {
       newErrors.name = "Name is required";
     } else if (formData.name.trim().length < 2) {
       newErrors.name = "Name must be at least 2 characters";
     }
 
     // Phone validation
-    if (!formData.phone.trim()) {
+    if (!isRequired(formData.phone)) {
       newErrors.phone = "Phone number is required";
-    } else if (!/^\+?[\d\s\-\(\)]{10,}$/.test(formData.phone.trim())) {
+    } else if (!isValidPhoneNumber(formData.phone.trim())) {
       newErrors.phone = "Please enter a valid phone number";
     }
 
     // Email validation (optional)
-    if (formData.email && formData.email.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email.trim())) {
-        newErrors.email = "Please enter a valid email address";
-      }
+    if (formData.email && !isValidEmail(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
     }
 
     setErrors(newErrors);
@@ -166,7 +159,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
                   },
                   errors.phone && styles.inputError,
                 ]}
-                placeholder="+1 (555) 123-4567"
+                placeholder="+94 712 345 678"
                 placeholderTextColor={placeholderTextColor}
                 value={formData.phone}
                 onChangeText={(value) => updateField("phone", value)}
