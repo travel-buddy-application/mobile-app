@@ -1,3 +1,4 @@
+import { DeepLinkService, InvitationData } from "@/services/deep-link.service";
 import { emailService } from "@/services/email.service";
 import { Contact, ContactCreateInput } from "@/types/trip";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -62,11 +63,18 @@ export const useContactStore = create<ContactStoreState>()(
                 newContact.pushToken
               );
             }
+            const invitationData: InvitationData = {
+              senderName: user?.name || "Your Friend",
+              email: user?.email || "",
+              phone: user?.phone || "",
+              fcmToken: user?.id || "", // Use user ID as FCM token for now
+            };
             await emailService({
               contactPerson: newContact.displayName,
               person: user?.name || "Your Friend",
               receiverEmail: newContact.email,
-              dashboardUrl: "https://google.com",
+              dashboardUrl:
+                DeepLinkService.generateInvitationLink(invitationData),
               sharingPolicy: newContact.sharingPolicy,
             });
 

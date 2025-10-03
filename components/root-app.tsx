@@ -1,5 +1,5 @@
 import { OnboardingNavigator } from "@/navigation/onboarding-navigator";
-import { DashboardScreen } from "@/screens/dashboard";
+import { TabNavigator } from "@/navigation/tab-navigator";
 import { useAuthStore } from "@/stores";
 import React, { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
@@ -62,7 +62,7 @@ export const RootApp: React.FC<RootAppProps> = () => {
   }
 
   // Show Travel Buddy dashboard if user is onboarded
-  return <DashboardScreen />;
+  return <TabNavigator />;
 };
 
 const styles = StyleSheet.create({
