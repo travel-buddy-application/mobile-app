@@ -1,8 +1,15 @@
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useDatabase } from "@/hooks/use-database";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { useAuthStore, useTripStore } from "@/stores";
+import {
+  useAuthStore,
+  useContactStore,
+  useTripSelectors,
+  useTripStore,
+} from "@/stores";
+import simpleDbTest from "@/utils/simple-db-test";
 import React from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,6 +17,112 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export const HomeScreen: React.FC = () => {
   const { user } = useAuthStore();
   const { activeTrip, startTrip } = useTripStore();
+  const { trips, completedTrips } = useTripSelectors();
+  const { contacts } = useContactStore();
+  const { dbInfo, isLoading, refreshDatabaseInfo } = useDatabase();
+
+  const handleRunSimpleTest = async () => {
+    await simpleDbTest.runAllTests();
+    // Refresh database info after test
+    await refreshDatabaseInfo();
+  };
+
+  // Test Foreign Key Constraints Fix
+  const handleTestForeignKeyFix = async () => {
+    try {
+      console.log("🔑 Testing Foreign Key Constraints Fix...");
+      const { databaseService } = await import(
+        "@/services/database/database.service"
+      );
+      const isValid = await databaseService.validateForeignKeyConstraints();
+
+      if (isValid) {
+        console.log("✅ Foreign key fix working - trips can be created!");
+      } else {
+        console.log(
+          "❌ Foreign key fix failed - constraint violation still occurs"
+        );
+      }
+
+      await refreshDatabaseInfo();
+    } catch (error) {
+      console.error("❌ Foreign key test failed:", error);
+    }
+  };
+
+  // Ensure Default User (Debug)
+  const handleEnsureDefaultUser = async () => {
+    try {
+      console.log("👤 Ensuring default user exists...");
+      const { databaseService } = await import(
+        "@/services/database/database.service"
+      );
+      await databaseService.ensureDefaultUserExists();
+      console.log("✅ Default user check completed");
+      await refreshDatabaseInfo();
+    } catch (error) {
+      console.error("❌ Default user check failed:", error);
+    }
+  };
+
+  const handleSimpleCleanup = async () => {
+    await simpleDbTest.simpleCleanup();
+    // Refresh database info after cleanup
+    await refreshDatabaseInfo();
+  };
+
+  // Trip Store Testing Functions
+  const handleTestTripOperations = async () => {
+    try {
+      console.log("🧪 Testing SQLite Trip Operations...");
+
+      // Test creating a trip
+      const testTrip = await startTrip({
+        title: "Test SQLite Trip",
+        origin: {
+          lat: 40.7128,
+          lng: -74.006,
+          address: "New York, NY",
+        },
+        destination: {
+          lat: 34.0522,
+          lng: -118.2437,
+          address: "Los Angeles, CA",
+        },
+        contacts: contacts.map((c) => c.id) || [],
+      });
+
+      console.log("✅ Test trip created:", testTrip.id); // Test fetching trips
+      await handleLoadTrips();
+
+      // Refresh database info after trip operations
+      await refreshDatabaseInfo();
+    } catch (error) {
+      console.error("❌ Trip testing failed:", error);
+    }
+  };
+
+  const handleLoadTrips = async () => {
+    try {
+      console.log("📋 Loading trips from SQLite...");
+      const { fetchTrips, trips } = useTripStore.getState();
+      await fetchTrips();
+      console.log(`✅ Loaded ${trips.length} trips from database`);
+    } catch (error) {
+      console.error("❌ Failed to load trips:", error);
+    }
+  };
+
+  // Run Comprehensive FK Validation
+  const handleComprehensiveValidation = async () => {
+    try {
+      console.log("🔬 Running comprehensive foreign key validation...");
+      await simpleDbTest.validateAllFixes();
+      await refreshDatabaseInfo();
+    } catch (error) {
+      console.error("❌ Comprehensive validation failed:", error);
+    }
+  };
 
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");
@@ -31,7 +144,7 @@ export const HomeScreen: React.FC = () => {
           lng: 0,
           address: "Destination",
         },
-        contacts: user?.emergencyContacts?.map((contact) => contact.id) || [],
+        contacts: contacts.map((contact) => contact.id) || [],
       });
     } catch (error) {
       console.error("Failed to start trip:", error);
@@ -50,23 +163,27 @@ export const HomeScreen: React.FC = () => {
             Welcome back, {user?.name || "Traveler"}!
           </ThemedText>
         </ThemedView>
-
         {/* Quick Stats */}
         <ThemedView style={styles.statsContainer}>
           <ThemedView style={styles.statCard}>
             <ThemedText type="defaultSemiBold" style={styles.statNumber}>
-              0
+              {completedTrips.length}
             </ThemedText>
             <ThemedText style={styles.statLabel}>Completed Trips</ThemedText>
           </ThemedView>
           <ThemedView style={styles.statCard}>
             <ThemedText type="defaultSemiBold" style={styles.statNumber}>
-              {user?.emergencyContacts?.length || 0}
+              {trips.length}
+            </ThemedText>
+            <ThemedText style={styles.statLabel}>Total Trips</ThemedText>
+          </ThemedView>
+          <ThemedView style={styles.statCard}>
+            <ThemedText type="defaultSemiBold" style={styles.statNumber}>
+              {contacts.length}
             </ThemedText>
             <ThemedText style={styles.statLabel}>Emergency Contacts</ThemedText>
           </ThemedView>
         </ThemedView>
-
         {/* Active Trip or Start Trip */}
         <ThemedView style={styles.tripContainer}>
           {activeTrip ? (
@@ -109,7 +226,6 @@ export const HomeScreen: React.FC = () => {
             </ThemedView>
           )}
         </ThemedView>
-
         {/* Safety Features */}
         <ThemedView style={styles.featuresContainer}>
           <ThemedText type="subtitle" style={styles.featuresTitle}>
@@ -150,6 +266,110 @@ export const HomeScreen: React.FC = () => {
             </ThemedView>
           </ThemedView>
         </ThemedView>
+        {/* Database Testing Section (Development Only) */}
+        <ThemedView style={styles.databaseContainer}>
+          <ThemedText type="subtitle" style={styles.databaseTitle}>
+            🗄️ Database Testing (Dev Only)
+          </ThemedText>
+          <ThemedView
+            style={[
+              styles.databaseCard,
+              { backgroundColor: cardBackgroundColor, borderColor },
+            ]}
+          >
+            <ThemedText style={styles.databaseInfo}>
+              Tables: {dbInfo?.tables?.length || 0} | Users:
+              {dbInfo?.counts?.users || 0} | Trips: {dbInfo?.counts?.trips || 0}
+            </ThemedText>
+            <ThemedView style={styles.databaseButtonsRow}>
+              <ThemedButton
+                title={isLoading ? "Running..." : "Test"}
+                onPress={handleRunSimpleTest}
+                disabled={isLoading}
+                style={styles.smallTestButton}
+                textStyle={styles.smallButtonText}
+              />
+              <ThemedButton
+                title="Refresh"
+                onPress={refreshDatabaseInfo}
+                disabled={isLoading}
+                style={styles.smallRefreshButton}
+                textStyle={styles.smallButtonText}
+              />
+              <ThemedButton
+                title="Clean"
+                onPress={handleSimpleCleanup}
+                disabled={isLoading}
+                type="delete"
+                style={styles.smallCleanButton}
+                textStyle={styles.smallButtonText}
+              />
+            </ThemedView>
+            <ThemedView style={styles.databaseButtonsRow}>
+              <ThemedButton
+                title="Fix Default User"
+                onPress={handleEnsureDefaultUser}
+                type="default"
+                style={styles.fixButton}
+                textStyle={styles.smallButtonText}
+              />
+            </ThemedView>
+          </ThemedView>
+        </ThemedView>
+        {/* Trip Store Testing Section (Development Only) */}
+        <ThemedView style={styles.databaseContainer}>
+          <ThemedText type="subtitle" style={styles.databaseTitle}>
+            🚗 Trip Store Testing (Dev Only)
+          </ThemedText>
+          <ThemedView
+            style={[
+              styles.databaseCard,
+              { backgroundColor: cardBackgroundColor, borderColor },
+            ]}
+          >
+            <ThemedText style={styles.databaseInfo}>
+              Section 2: SQLite Trip Store Integration Testing
+            </ThemedText>
+            <ThemedView style={styles.databaseButtonsRow}>
+              <ThemedButton
+                title="Test Trip"
+                onPress={handleTestTripOperations}
+                style={styles.smallTestButton}
+                textStyle={styles.smallButtonText}
+              />
+              <ThemedButton
+                title="Load Trips"
+                onPress={handleLoadTrips}
+                type="default"
+                style={styles.smallRefreshButton}
+                textStyle={styles.smallButtonText}
+              />
+              <ThemedButton
+                title="FK Test"
+                onPress={handleTestForeignKeyFix}
+                type="default"
+                style={styles.smallRefreshButton}
+                textStyle={styles.smallButtonText}
+              />
+            </ThemedView>
+            <ThemedView style={styles.databaseButtonsRow}>
+              <ThemedButton
+                title="Ensure User"
+                onPress={handleEnsureDefaultUser}
+                type="default"
+                style={styles.smallRefreshButton}
+                textStyle={styles.smallButtonText}
+              />
+              <ThemedButton
+                title="Full Validation"
+                onPress={handleComprehensiveValidation}
+                type="default"
+                style={styles.smallTestButton}
+                textStyle={styles.smallButtonText}
+              />
+            </ThemedView>
+          </ThemedView>
+        </ThemedView>
       </ScrollView>
     </SafeAreaView>
   );
@@ -176,22 +396,26 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
     marginBottom: 30,
+    gap: 8,
   },
   statCard: {
     alignItems: "center",
-    padding: 15,
+    justifyContent: "center",
+    flex: 1,
+    padding: 12,
     borderRadius: 12,
-    minWidth: 120,
   },
   statNumber: {
-    fontSize: 24,
-    marginBottom: 5,
+    fontSize: 22,
+    marginBottom: 4,
+    fontWeight: "bold",
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     opacity: 0.7,
+    textAlign: "center",
+    lineHeight: 14,
   },
   tripContainer: {
     marginBottom: 30,
@@ -277,5 +501,79 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.6,
     fontStyle: "italic",
+  },
+  // Database Testing Styles (Development)
+  databaseContainer: {
+    marginBottom: 20,
+  },
+  databaseTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 15,
+  },
+  databaseCard: {
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  databaseInfo: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  databaseButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+    backgroundColor: "transparent",
+  },
+  databaseButtonsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+    backgroundColor: "transparent",
+    marginBottom: 8,
+  },
+  testButton: {
+    flex: 1,
+    backgroundColor: "#4CAF50",
+  },
+  refreshButton: {
+    flex: 1,
+    backgroundColor: "#2196F3",
+  },
+  fixButton: {
+    flex: 1,
+    backgroundColor: "#2196F3",
+    minHeight: 42,
+    borderRadius: 8,
+  },
+  cleanButton: {
+    flex: 1,
+  },
+  smallTestButton: {
+    flex: 1,
+    backgroundColor: "#4CAF50",
+    minHeight: 42,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+  },
+  smallRefreshButton: {
+    flex: 1,
+    backgroundColor: "#2196F3",
+    minHeight: 42,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+  },
+  smallCleanButton: {
+    flex: 1,
+    minHeight: 42,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+  },
+  smallButtonText: {
+    fontSize: 11,
+    fontWeight: "600",
   },
 });
