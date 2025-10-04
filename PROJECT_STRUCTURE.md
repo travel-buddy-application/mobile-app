@@ -29,7 +29,13 @@ mobile-app/
 │   └── onboarding/
 │       └── welcome-screen.tsx     # User registration screen
 ├── services/
-│   └── trip.service.ts           # Trip data service (SQLite - Phase 2)
+│   ├── database/
+│   │   ├── database.service.ts   # SQLite database management
+│   │   └── trip.service.ts       # Trip database operations
+│   ├── location/
+│   │   ├── location-integration.service.ts      # Google Maps integration
+│   │   └── trip-location-integration.service.ts # Trip-location coordination
+│   └── trip.service.ts           # Legacy trip service
 ├── stores/
 │   ├── auth/
 │   │   └── auth.store.ts         # User authentication & onboarding

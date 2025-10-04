@@ -1,4 +1,4 @@
-// import { TripService } from "@/services/trip.service"; // TODO: Implement SQLite service
+import { TripDatabaseService } from "@/services/database/trip.service";
 import { LocationSample, Trip, TripCreateInput } from "@/types/trip";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
@@ -16,12 +16,13 @@ interface TripState {
   startTrip: (tripData: TripCreateInput) => Promise<Trip>;
   endTrip: (tripId?: string) => Promise<void>;
   triggerSOS: (tripId?: string) => Promise<void>;
-  updateTripStatus: (tripId: string, status: Trip["status"]) => void;
-  addLocationToTrip: (location: LocationSample) => void;
-  getLocationHistory: (tripId: string) => LocationSample[];
+  updateTripStatus: (tripId: string, status: Trip["status"]) => Promise<void>;
+  addLocationToTrip: (location: LocationSample) => Promise<void>;
+  getLocationHistory: (tripId: string) => Promise<LocationSample[]>;
   fetchTrips: () => Promise<void>;
-  clearLocationHistory: () => void;
+  clearLocationHistory: (tripId?: string) => Promise<void>;
   clearError: () => void;
+  initializeFromDatabase: () => Promise<void>;
 }
 
 export const useTripStore = create<TripState>()(
@@ -38,22 +39,10 @@ export const useTripStore = create<TripState>()(
           set({ isLoading: true, error: null });
 
           try {
-            const newTrip: Trip = {
-              id: Date.now().toString(),
-              userId: "current-user", // TODO: Get from auth
-              title: tripData.title,
-              origin: tripData.origin,
-              destination: tripData.destination,
-              status: "active",
-              startAt: new Date().toISOString(),
-              contacts: tripData.contacts,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
+            // Create trip using SQLite database service
+            const newTrip = await TripDatabaseService.createTrip(tripData);
 
-            // TODO: Save to SQLite via TripService
-            // const savedTrip = await TripService.createTrip(newTrip);
-
+            // Update local state
             const trips = [...get().trips, newTrip];
             set({
               trips,
@@ -61,6 +50,7 @@ export const useTripStore = create<TripState>()(
               isLoading: false,
             });
 
+            console.log("🚀 Trip started successfully:", newTrip.id);
             return newTrip;
           } catch (error) {
             const errorMessage =
@@ -69,23 +59,23 @@ export const useTripStore = create<TripState>()(
               error: errorMessage,
               isLoading: false,
             });
+            console.error("❌ Failed to start trip:", error);
             throw error;
           }
-        },
-
-        // Fetch all trips
+        }, // Fetch all trips
         fetchTrips: async () => {
           set({ isLoading: true, error: null });
 
           try {
-            // TODO: Fetch from SQLite via TripService
-            // const trips = await TripService.getAllTrips();
-            const trips = get().trips; // Use existing for now
+            // Fetch trips from SQLite database
+            const trips = await TripDatabaseService.getAllTrips();
 
             set({
               trips,
               isLoading: false,
             });
+
+            console.log(`📋 Fetched ${trips.length} trips from database`);
           } catch (error) {
             const errorMessage =
               error instanceof Error ? error.message : "Failed to fetch trips";
@@ -93,6 +83,7 @@ export const useTripStore = create<TripState>()(
               error: errorMessage,
               isLoading: false,
             });
+            console.error("❌ Failed to fetch trips:", error);
           }
         }, // End the active trip
         endTrip: async (tripId?: string) => {
@@ -104,28 +95,27 @@ export const useTripStore = create<TripState>()(
 
             if (!targetTripId) {
               throw new Error("No active trip to end");
-            }
-
-            const updatedTrips = trips.map((trip) => {
-              if (trip.id === targetTripId) {
-                return {
-                  ...trip,
-                  status: "ended" as const,
-                  endAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                };
+            } // Update trip in SQLite database
+            const updatedTrip = await TripDatabaseService.updateTrip(
+              targetTripId,
+              {
+                status: "completed",
+                endAt: new Date().toISOString(),
               }
-              return trip;
-            });
+            );
 
-            // TODO: Update in SQLite via TripService
-            // await TripService.updateTrip(targetTripId, { status: 'ended' });
+            // Update local state
+            const updatedTrips = trips.map((trip) =>
+              trip.id === targetTripId ? updatedTrip : trip
+            );
 
             set({
               trips: updatedTrips,
               activeTrip: null,
               isLoading: false,
             });
+
+            console.log("🏁 Trip ended successfully:", targetTripId);
           } catch (error) {
             const errorMessage =
               error instanceof Error ? error.message : "Failed to end trip";
@@ -133,11 +123,10 @@ export const useTripStore = create<TripState>()(
               error: errorMessage,
               isLoading: false,
             });
+            console.error("❌ Failed to end trip:", error);
             throw error;
           }
-        },
-
-        // Trigger SOS for active trip
+        }, // Trigger SOS for active trip
         triggerSOS: async (tripId?: string) => {
           set({ isLoading: true, error: null });
 
@@ -147,18 +136,18 @@ export const useTripStore = create<TripState>()(
 
             if (!targetTripId) {
               throw new Error("No active trip for SOS");
-            }
-
-            const updatedTrips = trips.map((trip) => {
-              if (trip.id === targetTripId) {
-                return {
-                  ...trip,
-                  status: "sos" as const,
-                  updatedAt: new Date().toISOString(),
-                };
+            } // Update trip status to SOS in SQLite database
+            const updatedTrip = await TripDatabaseService.updateTrip(
+              targetTripId,
+              {
+                status: "emergency",
               }
-              return trip;
-            });
+            );
+
+            // Update local state
+            const updatedTrips = trips.map((trip) =>
+              trip.id === targetTripId ? updatedTrip : trip
+            );
 
             // TODO: Trigger SOS notifications via service
             // await SOSService.triggerEmergency(targetTripId);
@@ -169,6 +158,8 @@ export const useTripStore = create<TripState>()(
                 updatedTrips.find((t) => t.id === targetTripId) || null,
               isLoading: false,
             });
+
+            console.log("🆘 SOS triggered successfully:", targetTripId);
           } catch (error) {
             const errorMessage =
               error instanceof Error ? error.message : "Failed to trigger SOS";
@@ -176,37 +167,38 @@ export const useTripStore = create<TripState>()(
               error: errorMessage,
               isLoading: false,
             });
+            console.error("❌ Failed to trigger SOS:", error);
             throw error;
           }
-        },
+        }, // Update trip status
+        updateTripStatus: async (tripId: string, status: Trip["status"]) => {
+          try {
+            // Update trip in SQLite database
+            const updatedTrip = await TripDatabaseService.updateTrip(tripId, {
+              status,
+            });
 
-        // Update trip status
-        updateTripStatus: (tripId: string, status: Trip["status"]) => {
-          const trips = get().trips.map((trip) => {
-            if (trip.id === tripId) {
-              return {
-                ...trip,
-                status,
-                updatedAt: new Date().toISOString(),
-              };
-            }
-            return trip;
-          });
+            // Update local state
+            const trips = get().trips.map((trip) =>
+              trip.id === tripId ? updatedTrip : trip
+            );
 
-          const activeTrip = get().activeTrip;
-          const updatedActiveTrip =
-            activeTrip?.id === tripId
-              ? trips.find((t) => t.id === tripId) || null
-              : activeTrip;
+            const activeTrip = get().activeTrip;
+            const updatedActiveTrip =
+              activeTrip?.id === tripId ? updatedTrip : activeTrip;
 
-          set({
-            trips,
-            activeTrip: updatedActiveTrip,
-          });
-        },
+            set({
+              trips,
+              activeTrip: updatedActiveTrip,
+            });
 
-        // Add location sample to current trip
-        addLocationToTrip: (location: LocationSample) => {
+            console.log("📝 Trip status updated:", tripId, status);
+          } catch (error) {
+            console.error("❌ Failed to update trip status:", error);
+            throw error;
+          }
+        }, // Add location sample to current trip
+        addLocationToTrip: async (location: LocationSample) => {
           const { activeTrip, locationHistory } = get();
 
           if (activeTrip) {
@@ -215,36 +207,125 @@ export const useTripStore = create<TripState>()(
               tripId: activeTrip.id,
             };
 
-            set({
-              locationHistory: [...locationHistory, updatedLocation],
-            });
+            try {
+              // Save to SQLite database
+              await TripDatabaseService.addLocationSample(updatedLocation);
 
-            // TODO: Save to SQLite
-            // LocationService.addLocationSample(updatedLocation);
+              // Update local state
+              set({
+                locationHistory: [...locationHistory, updatedLocation],
+              });
+
+              console.log("📍 Location added to trip:", updatedLocation.id);
+            } catch (error) {
+              console.error("❌ Failed to add location to trip:", error);
+              // Don't throw error to avoid breaking location tracking
+            }
           }
-        },
+        }, // Get location history for a trip
+        getLocationHistory: async (tripId: string) => {
+          try {
+            // Fetch from SQLite database
+            const locationHistory =
+              await TripDatabaseService.getLocationHistory(tripId);
 
-        // Get location history for a trip
-        getLocationHistory: (tripId: string) => {
-          return get().locationHistory.filter(
-            (location) => location.tripId === tripId
-          );
-        },
+            // Update local state with fetched data
+            set({ locationHistory });
 
-        // Clear location history
-        clearLocationHistory: () => {
-          set({ locationHistory: [] });
+            console.log(
+              `📍 Loaded ${locationHistory.length} location samples for trip:`,
+              tripId
+            );
+            return locationHistory;
+          } catch (error) {
+            console.error("❌ Failed to get location history:", error);
+            // Fallback to local state
+            return get().locationHistory.filter(
+              (location) => location.tripId === tripId
+            );
+          }
+        }, // Clear location history
+        clearLocationHistory: async (tripId?: string) => {
+          try {
+            if (tripId) {
+              // Clear location history for specific trip in SQLite
+              await TripDatabaseService.clearLocationHistory(tripId);
+
+              // Update local state - remove locations for this trip
+              const filteredHistory = get().locationHistory.filter(
+                (location) => location.tripId !== tripId
+              );
+              set({ locationHistory: filteredHistory });
+
+              console.log("🧹 Location history cleared for trip:", tripId);
+            } else {
+              // Clear all location history
+              set({ locationHistory: [] });
+              console.log("🧹 All location history cleared from local state");
+            }
+          } catch (error) {
+            console.error("❌ Failed to clear location history:", error);
+            // Fallback to local clear
+            set({ locationHistory: [] });
+          }
         }, // Clear error
         clearError: () => {
           set({ error: null });
+        },
+
+        // Initialize store with data from SQLite database
+        initializeFromDatabase: async () => {
+          try {
+            console.log("🔄 Initializing trip store from database...");
+
+            // Load all trips from database
+            const trips = await TripDatabaseService.getAllTrips();
+
+            // Find active trip
+            const activeTrip =
+              trips.find((trip) => trip.status === "active") || null;
+
+            // Load location history for active trip
+            let locationHistory: LocationSample[] = [];
+            if (activeTrip) {
+              locationHistory = await TripDatabaseService.getLocationHistory(
+                activeTrip.id
+              );
+            }
+
+            // Update store state
+            set({
+              trips,
+              activeTrip,
+              locationHistory,
+              isLoading: false,
+              error: null,
+            });
+
+            console.log(
+              `✅ Trip store initialized: ${trips.length} trips, active: ${
+                activeTrip?.id || "none"
+              }`
+            );
+          } catch (error) {
+            console.error(
+              "❌ Failed to initialize trip store from database:",
+              error
+            );
+            set({
+              error: "Failed to load trip data from database",
+              isLoading: false,
+            });
+          }
         },
       }),
       {
         name: "trip-store",
         storage: createJSONStorage(() => AsyncStorage),
         partialize: (state) => ({
-          trips: state.trips,
-          activeTrip: state.activeTrip,
+          // Only persist minimal state - trips are in SQLite
+          activeTrip: state.activeTrip, // Keep active trip for quick access
+          error: state.error,
         }),
       }
     ),
@@ -259,8 +340,8 @@ export const useTripSelectors = () => {
   return {
     ...store,
     activeTrips: store.trips.filter((trip) => trip.status === "active"),
-    completedTrips: store.trips.filter((trip) => trip.status === "ended"),
-    sosTrips: store.trips.filter((trip) => trip.status === "sos"),
+    completedTrips: store.trips.filter((trip) => trip.status === "completed"),
+    sosTrips: store.trips.filter((trip) => trip.status === "emergency"),
     hasActiveTrip: !!store.activeTrip && store.activeTrip.status === "active",
   };
 };
