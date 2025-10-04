@@ -14,7 +14,8 @@ export class DeepLinkService {
    * Generate an invitation link
    */
   static generateInvitationLink(data: InvitationData): string {
-    const baseUrl = "travelbuddy://invite";
+    const baseUrl =
+      "https://zajzaxnkswpsdwuxpdin.supabase.co/functions/v1/deep-link";
     const params = new URLSearchParams({
       senderName: data.senderName,
       email: data.email,

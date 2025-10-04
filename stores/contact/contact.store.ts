@@ -7,7 +7,6 @@ import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 import { createJSONStorage, devtools, persist } from "zustand/middleware";
 import { useAuthStore } from "../auth/auth.store";
-const { user } = useAuthStore.getState();
 
 interface ContactStoreState {
   // State
@@ -48,6 +47,9 @@ export const useContactStore = create<ContactStoreState>()(
           set({ isLoading: true, error: null });
 
           try {
+            const authState = useAuthStore.getState(); // <-- get fresh state
+            const user = authState.user;
+
             const newContact: Contact = {
               id: Date.now().toString(),
               ...contactData,
