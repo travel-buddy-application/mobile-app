@@ -81,7 +81,7 @@ export default function AddContactForm() {
 
       Alert.alert("Success", "Emergency contact added successfully!");
     } catch (error) {
-      console.error("Failed to add contact:", error);
+      void error;
       Alert.alert(
         "Error",
         "Failed to add emergency contact. Please try again.",

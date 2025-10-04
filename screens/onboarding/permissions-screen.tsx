@@ -51,16 +51,16 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
       }
 
       // Special message for Expo Go users
-      if (
-        grantedPermissions.location &&
-        grantedPermissions.notifications === true
-      ) {
-        Alert.alert(
-          "Demo Mode",
-          "You're using Expo Go! Location permissions work, but notifications are simulated. Use a development build for full functionality.",
-          [{ text: "Continue" }]
-        );
-      }
+      // if (
+      //   grantedPermissions.location &&
+      //   grantedPermissions.notifications === true
+      // ) {
+      //   Alert.alert(
+      //     "Demo Mode",
+      //     "You're using Expo Go! Location permissions work, but notifications are simulated. Use a development build for full functionality.",
+      //     [{ text: "Continue" }]
+      //   );
+      // }
 
       // Complete onboarding regardless of permission results
       completeOnboardingStep("permissions");

@@ -47,6 +47,37 @@ export const useContactStore = create<ContactStoreState>()(
           set({ isLoading: true, error: null });
 
           try {
+            const currentContacts = get().contacts;
+
+            // Check for duplicate email
+            const existingContactByEmail = currentContacts.find(
+              (contact) =>
+                contact.email.toLowerCase() === contactData.email.toLowerCase()
+            );
+
+            if (existingContactByEmail) {
+              const errorMessage = `A contact with email ${contactData.email} already exists (${existingContactByEmail.displayName})`;
+              set({
+                error: errorMessage,
+                isLoading: false,
+              });
+              throw new Error(errorMessage);
+            }
+
+            // Check for duplicate phone number
+            const existingContactByPhone = currentContacts.find(
+              (contact) => contact.phone === contactData.phone
+            );
+
+            if (existingContactByPhone) {
+              const errorMessage = `A contact with phone number ${contactData.phone} already exists (${existingContactByPhone.displayName})`;
+              set({
+                error: errorMessage,
+                isLoading: false,
+              });
+              throw new Error(errorMessage);
+            }
+
             const authState = useAuthStore.getState(); // <-- get fresh state
             const user = authState.user;
 
@@ -70,6 +101,7 @@ export const useContactStore = create<ContactStoreState>()(
               email: user?.email || "",
               phone: user?.phone || "",
               fcmToken: user?.id || "", // Use user ID as FCM token for now
+              receiverEmail: newContact.email,
             };
             await emailService({
               contactPerson: newContact.displayName,

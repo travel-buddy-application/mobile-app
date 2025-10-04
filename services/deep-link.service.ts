@@ -7,6 +7,7 @@ export interface InvitationData {
   phone: string;
   fcmToken?: string;
   message?: string;
+  receiverEmail: string;
 }
 
 export class DeepLinkService {
@@ -14,12 +15,12 @@ export class DeepLinkService {
    * Generate an invitation link
    */
   static generateInvitationLink(data: InvitationData): string {
-    const baseUrl =
-      "https://zajzaxnkswpsdwuxpdin.supabase.co/functions/v1/deep-link";
+    const baseUrl = "https://travelbuddy-deeplink.vercel.app/invite";
     const params = new URLSearchParams({
       senderName: data.senderName,
       email: data.email,
       phone: data.phone,
+      receiverEmail: data.receiverEmail,
       ...(data.fcmToken && { fcmToken: data.fcmToken }),
       ...(data.message && { message: data.message }),
     });
@@ -36,6 +37,7 @@ export class DeepLinkService {
       senderName: data.senderName,
       email: data.email,
       phone: data.phone,
+      receiverEmail: data.receiverEmail,
       ...(data.fcmToken && { fcmToken: data.fcmToken }),
       ...(data.message && { message: data.message }),
     });
@@ -65,6 +67,7 @@ export class DeepLinkService {
         phone,
         fcmToken: params.get("fcmToken") || undefined,
         message: params.get("message") || undefined,
+        receiverEmail: params.get("receiverEmail") || "",
       };
     } catch (error) {
       console.error("Error parsing invitation URL:", error);
