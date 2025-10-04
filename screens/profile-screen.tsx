@@ -11,6 +11,7 @@ import {
   isValidPhoneNumber,
 } from "@/utils/validation";
 import { MaterialIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
@@ -22,10 +23,13 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 export const ProfileScreen: React.FC = () => {
   const { user, updateUserProfile, logout, error, clearError } = useAuthStore();
-  const { permissions, requestAllPermissions } = usePermissionsStore();
+  const {
+    permissions,
+    requestLocationPermission,
+    requestNotificationPermission,
+  } = usePermissionsStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editedUser, setEditedUser] = useState({
     name: user?.name || "",
@@ -64,8 +68,10 @@ export const ProfileScreen: React.FC = () => {
       newErrors.phone = "Please enter a valid phone number";
     }
 
-    // Email validation (optional)
-    if (editedUser.email && !isValidEmail(editedUser.email)) {
+    // Email validation
+    if (!isRequired(editedUser.email)) {
+      newErrors.email = "Email is required";
+    } else if (!isValidEmail(editedUser.email.trim())) {
       newErrors.email = "Please enter a valid email address";
     }
 
@@ -109,6 +115,7 @@ export const ProfileScreen: React.FC = () => {
           onPress: async () => {
             try {
               await logout();
+              router.replace("/(onboarding)/welcome");
             } catch (error) {
               console.error("Logout failed:", error);
             }
@@ -118,13 +125,34 @@ export const ProfileScreen: React.FC = () => {
     );
   };
 
-  const handleRequestPermissions = async () => {
+  const handleRequestLocationPermissions = async () => {
     try {
-      await requestAllPermissions();
-      Alert.alert("Permissions", "Permission request completed!");
+      const result = await requestLocationPermission();
+      if (result) {
+        Alert.alert("Permissions", "Location permission request completed!");
+      } else {
+        Alert.alert("Permissions", "Location permission request denied.");
+      }
     } catch (error) {
       console.error("Failed to request permissions:", error);
       Alert.alert("Error", "Failed to request permissions.");
+    }
+  };
+
+  const handleRequestNotificationPermission = async () => {
+    try {
+      const result = await requestNotificationPermission();
+      if (result) {
+        Alert.alert(
+          "Permissions",
+          "Notification permission request completed!"
+        );
+      } else {
+        Alert.alert("Permissions", "Notification permission request denied.");
+      }
+    } catch (error) {
+      console.error("Failed to request notification permission:", error);
+      Alert.alert("Error", "Failed to request notification permission.");
     }
   };
 
@@ -301,9 +329,7 @@ export const ProfileScreen: React.FC = () => {
                   color={textColor}
                   style={styles.infoIcon}
                 />
-                <ThemedText style={styles.infoText}>
-                  {user?.email || "Not provided"}
-                </ThemedText>
+                <ThemedText style={styles.infoText}>{user?.email}</ThemedText>
               </ThemedView>
             </ThemedView>
           )}
@@ -338,7 +364,7 @@ export const ProfileScreen: React.FC = () => {
             </ThemedView>
             <Switch
               value={permissions.location}
-              onValueChange={handleRequestPermissions}
+              onValueChange={handleRequestLocationPermissions}
               trackColor={{ false: "#767577", true: "#4CAF50" }}
               thumbColor={permissions.location ? "#ffffff" : "#f4f3f4"}
             />
@@ -363,7 +389,7 @@ export const ProfileScreen: React.FC = () => {
             </ThemedView>
             <Switch
               value={permissions.notifications}
-              onValueChange={handleRequestPermissions}
+              onValueChange={handleRequestNotificationPermission}
               trackColor={{ false: "#767577", true: "#4CAF50" }}
               thumbColor={permissions.notifications ? "#ffffff" : "#f4f3f4"}
             />

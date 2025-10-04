@@ -59,8 +59,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
       newErrors.phone = "Please enter a valid phone number";
     }
 
-    // Email validation (optional)
-    if (formData.email && !isValidEmail(formData.email)) {
+    // Email validation
+    if (!isRequired(formData.email)) {
+      newErrors.email = "Email is required";
+    } else if (!isValidEmail(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
 
@@ -173,10 +175,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
             </ThemedView>
             {/* Email Input (Optional) */}
             <ThemedView style={styles.inputGroup}>
-              <ThemedText style={styles.label}>
-                Email address
-                <ThemedText style={styles.optional}>(optional)</ThemedText>
-              </ThemedText>
+              <ThemedText style={styles.label}>Email address</ThemedText>
               <TextInput
                 style={[
                   styles.input,
@@ -212,6 +211,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
               onPress={handleContinue}
               disabled={isLoading}
               style={styles.continueButton}
+              type="success"
             />
             {/* Info Text */}
             <ThemedText style={styles.infoText}>

@@ -22,7 +22,7 @@ export interface EmergencyContact {
 export interface UserCreateInput {
   name: string;
   phone: string;
-  email?: string;
+  email: string;
 }
 
 export interface EmergencyContactCreateInput {

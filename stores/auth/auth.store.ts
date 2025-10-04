@@ -8,7 +8,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 import { createJSONStorage, devtools, persist } from "zustand/middleware";
-
 interface AuthState {
   // State
   user: User | null;
@@ -262,6 +261,14 @@ export const useAuthStore = create<AuthState>()(
               await useContactStore.getState().clearAllContacts();
             } catch (err) {
               console.warn("Failed to clear contacts during logout:", err);
+            }
+            try {
+              const { usePermissionsStore } = await import(
+                "../permissions/permissions.store"
+              );
+              await usePermissionsStore.getState().resetPermissions();
+            } catch (err) {
+              console.warn("Failed to reset permissions during logout:", err);
             }
 
             set({

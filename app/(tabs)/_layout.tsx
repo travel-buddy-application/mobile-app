@@ -1,16 +1,10 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import React from "react";
+import { Tabs } from "expo-router";
 
 import { Colors } from "@/constants/theme";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { ContactsScreen } from "@/screens/contacts-screen";
-import { HomeScreen } from "@/screens/home-screen";
-import { ProfileScreen } from "@/screens/profile-screen";
 
-const Tab = createBottomTabNavigator();
-
-export const TabNavigator: React.FC = () => {
+export default function TabLayout() {
   const tintColor = useThemeColor(
     { light: Colors.light.tint, dark: Colors.dark.tint },
     "tint"
@@ -22,7 +16,7 @@ export const TabNavigator: React.FC = () => {
   const inactiveTintColor = useThemeColor({}, "tabIconDefault");
 
   return (
-    <Tab.Navigator
+    <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: tintColor,
@@ -30,40 +24,40 @@ export const TabNavigator: React.FC = () => {
         tabBarStyle: {
           backgroundColor,
           borderTopWidth: 0,
-          elevation: 4,
+          elevation: 8,
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
           shadowRadius: 4,
         },
       }}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
+      <Tabs.Screen
+        name="index"
         options={{
+          title: "Home",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="home" size={size} color={color} />
           ),
         }}
       />
-      <Tab.Screen
-        name="Contacts"
-        component={ContactsScreen}
+      <Tabs.Screen
+        name="contacts"
         options={{
+          title: "Contacts",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="contacts" size={size} color={color} />
           ),
         }}
       />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
+      <Tabs.Screen
+        name="profile"
         options={{
+          title: "Profile",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="person" size={size} color={color} />
           ),
         }}
       />
-    </Tab.Navigator>
+    </Tabs>
   );
-};
+}
