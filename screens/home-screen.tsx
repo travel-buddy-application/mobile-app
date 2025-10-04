@@ -9,7 +9,9 @@ import {
   useTripSelectors,
   useTripStore,
 } from "@/stores";
+import LocationDatabaseFix from "@/utils/location-db-fix";
 import simpleDbTest from "@/utils/simple-db-test";
+import { router } from "expo-router";
 import React from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -112,7 +114,6 @@ export const HomeScreen: React.FC = () => {
       console.error("❌ Failed to load trips:", error);
     }
   };
-
   // Run Comprehensive FK Validation
   const handleComprehensiveValidation = async () => {
     try {
@@ -121,6 +122,17 @@ export const HomeScreen: React.FC = () => {
       await refreshDatabaseInfo();
     } catch (error) {
       console.error("❌ Comprehensive validation failed:", error);
+    }
+  };
+
+  // Location Database Fix
+  const handleLocationDatabaseFix = async () => {
+    try {
+      console.log("📍 Running Location Database Fix Tests...");
+      await LocationDatabaseFix.runAllTests();
+      await refreshDatabaseInfo();
+    } catch (error) {
+      console.error("❌ Location database fix failed:", error);
     }
   };
 
@@ -365,6 +377,38 @@ export const HomeScreen: React.FC = () => {
                 onPress={handleComprehensiveValidation}
                 type="default"
                 style={styles.smallTestButton}
+                textStyle={styles.smallButtonText}
+              />
+            </ThemedView>
+          </ThemedView>
+        </ThemedView>
+
+        {/* Location Services Testing Section (Development Only) */}
+        <ThemedView style={styles.databaseContainer}>
+          <ThemedText type="subtitle" style={styles.databaseTitle}>
+            📍 Location Services Testing (Dev Only)
+          </ThemedText>
+          <ThemedView
+            style={[
+              styles.databaseCard,
+              { backgroundColor: cardBackgroundColor, borderColor },
+            ]}
+          >
+            <ThemedText style={styles.databaseInfo}>
+              Section 3A: Google Maps Integration & Location Sharing
+            </ThemedText>
+            <ThemedView style={styles.databaseButtonsRow}>
+              <ThemedButton
+                title="Location Demo"
+                onPress={() => router.push("/location-services" as any)}
+                style={styles.smallTestButton}
+                textStyle={styles.smallButtonText}
+              />
+              <ThemedButton
+                title="Fix Location DB"
+                onPress={handleLocationDatabaseFix}
+                type="default"
+                style={styles.smallRefreshButton}
                 textStyle={styles.smallButtonText}
               />
             </ThemedView>

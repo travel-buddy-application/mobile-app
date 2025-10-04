@@ -240,20 +240,19 @@ export class TripDatabaseService {
     try {
       const query = `
         INSERT INTO location_samples (
-          id, trip_id, latitude, longitude, accuracy, speed, timestamp, created_at
-        ) VALUES (
-          '${location.id}',
-          '${location.tripId}',
-          ${location.lat},
-          ${location.lng},
-          ${location.accuracy},
-          ${location.speed || "null"},
-          ${location.timestamp},
-          '${location.createdAt}'
-        )
+          id, trip_id, latitude, longitude, accuracy, speed, timestamp
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
       `;
-
-      await db.execAsync(query);
+      await db.runAsync(
+        query,
+        location.id,
+        location.tripId,
+        location.lat,
+        location.lng,
+        location.accuracy,
+        location.speed || null,
+        location.timestamp
+      );
 
       console.log("✅ Location sample added:", location.id);
     } catch (error) {
@@ -289,7 +288,7 @@ export class TripDatabaseService {
           speed: row.speed || undefined,
           accuracy: row.accuracy,
           source: "gps", // Default source
-          createdAt: row.created_at,
+          createdAt: new Date(row.timestamp).toISOString(), // Use timestamp as created_at
         };
         locations.push(location);
       }

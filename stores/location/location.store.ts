@@ -1,3 +1,4 @@
+import { LocationIntegrationService } from "@/services/location/location-integration.service";
 import { LocationSample, LocationState } from "@/types/trip";
 import * as Location from "expo-location";
 import { create } from "zustand";
@@ -5,13 +6,25 @@ import { devtools } from "zustand/middleware";
 
 interface LocationStoreState extends LocationState {
   // Actions
-  startTracking: () => Promise<void>;
+  startTracking: (tripId?: string) => Promise<void>;
   stopTracking: () => void;
-  updateLocation: (location: LocationSample) => void;
+  updateLocation: (location: LocationSample, tripId?: string) => Promise<void>;
   requestPermissions: () => Promise<boolean>;
   getCurrentPosition: () => Promise<LocationSample | null>;
   setServiceStatus: (status: LocationState["serviceStatus"]) => void;
   clearLocation: () => void;
+
+  // Google Maps integration
+  generateShareableUrl: (location?: LocationSample) => string | null;
+  generateLocationMessage: (
+    tripName?: string,
+    userName?: string
+  ) => string | null;
+  generateEmergencyAlert: (
+    tripName?: string,
+    userName?: string,
+    customMessage?: string
+  ) => string | null;
 }
 
 export const useLocationStore = create<LocationStoreState>()(
@@ -23,10 +36,8 @@ export const useLocationStore = create<LocationStoreState>()(
       accuracy: 0,
       serviceStatus: "stopped",
       lastUpdate: 0,
-      permissionStatus: "undetermined",
-
-      // Start location tracking
-      startTracking: async () => {
+      permissionStatus: "undetermined", // Start location tracking with optional trip association
+      startTracking: async (tripId?: string) => {
         const { permissionStatus } = get();
 
         if (permissionStatus !== "granted") {
@@ -47,10 +58,10 @@ export const useLocationStore = create<LocationStoreState>()(
               timeInterval: 10000, // 10 seconds
               distanceInterval: 5, // 5 meters
             },
-            (location) => {
+            async (location) => {
               const locationSample: LocationSample = {
                 id: Date.now().toString(),
-                tripId: "", // Will be set by trip store
+                tripId: tripId || "",
                 timestamp: Date.now(),
                 lat: location.coords.latitude,
                 lng: location.coords.longitude,
@@ -60,7 +71,8 @@ export const useLocationStore = create<LocationStoreState>()(
                 createdAt: new Date().toISOString(),
               };
 
-              get().updateLocation(locationSample);
+              // Update location and save to database if trip is associated
+              await get().updateLocation(locationSample, tripId);
             }
           );
 
@@ -68,6 +80,11 @@ export const useLocationStore = create<LocationStoreState>()(
 
           // Store subscription for cleanup
           (get() as any).locationSubscription = subscription;
+
+          console.log(
+            "📍 Location tracking started",
+            tripId ? `for trip: ${tripId}` : ""
+          );
         } catch (error) {
           console.error("Failed to start location tracking:", error);
           set({
@@ -89,14 +106,37 @@ export const useLocationStore = create<LocationStoreState>()(
           isTracking: false,
           currentLocation: null,
         });
-      },
+      }, // Update current location and optionally save to database
+      updateLocation: async (location: LocationSample, tripId?: string) => {
+        // Validate location quality
+        const validation =
+          LocationIntegrationService.validateLocationQuality(location);
 
-      // Update current location
-      updateLocation: (location: LocationSample) => {
+        if (!validation.isValid) {
+          console.warn("⚠️ Invalid location data:", validation.warnings);
+          return;
+        }
+
+        if (validation.warnings.length > 0) {
+          console.warn("⚠️ Location quality issues:", validation.warnings);
+        }
+
+        // Update local state
         set({
           currentLocation: location,
           lastUpdate: Date.now(),
           accuracy: location.accuracy,
+        });
+
+        // Save to database if trip ID is provided
+        if (tripId || location.tripId) {
+          await LocationIntegrationService.saveLocationSample(location, tripId);
+        }
+
+        console.log(`📍 Location updated (${validation.quality} quality):`, {
+          lat: location.lat.toFixed(6),
+          lng: location.lng.toFixed(6),
+          accuracy: `${location.accuracy}m`,
         });
       },
 
@@ -157,15 +197,50 @@ export const useLocationStore = create<LocationStoreState>()(
       // Set service status
       setServiceStatus: (status: LocationState["serviceStatus"]) => {
         set({ serviceStatus: status });
-      },
-
-      // Clear location data
+      }, // Clear location data
       clearLocation: () => {
         set({
           currentLocation: null,
           lastUpdate: 0,
           accuracy: 0,
         });
+      },
+
+      // Generate shareable Google Maps URL for current location
+      generateShareableUrl: (location?: LocationSample) => {
+        const targetLocation = location || get().currentLocation;
+        if (!targetLocation) return null;
+
+        return LocationIntegrationService.generateGoogleMapsUrl(targetLocation);
+      },
+
+      // Generate location share message
+      generateLocationMessage: (tripName?: string, userName?: string) => {
+        const { currentLocation } = get();
+        if (!currentLocation) return null;
+
+        return LocationIntegrationService.generateLocationShareMessage(
+          currentLocation,
+          tripName,
+          userName
+        );
+      },
+
+      // Generate emergency alert message
+      generateEmergencyAlert: (
+        tripName?: string,
+        userName?: string,
+        customMessage?: string
+      ) => {
+        const { currentLocation } = get();
+        if (!currentLocation) return null;
+
+        return LocationIntegrationService.generateEmergencyAlert(
+          currentLocation,
+          tripName,
+          userName,
+          customMessage
+        );
       },
     }),
     { name: "location-store" }

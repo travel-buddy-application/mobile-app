@@ -95,13 +95,11 @@ export const useTripStore = create<TripState>()(
 
             if (!targetTripId) {
               throw new Error("No active trip to end");
-            }
-
-            // Update trip in SQLite database
+            } // Update trip in SQLite database
             const updatedTrip = await TripDatabaseService.updateTrip(
               targetTripId,
               {
-                status: "ended",
+                status: "completed",
                 endAt: new Date().toISOString(),
               }
             );
@@ -138,13 +136,11 @@ export const useTripStore = create<TripState>()(
 
             if (!targetTripId) {
               throw new Error("No active trip for SOS");
-            }
-
-            // Update trip status to SOS in SQLite database
+            } // Update trip status to SOS in SQLite database
             const updatedTrip = await TripDatabaseService.updateTrip(
               targetTripId,
               {
-                status: "sos",
+                status: "emergency",
               }
             );
 
@@ -344,8 +340,8 @@ export const useTripSelectors = () => {
   return {
     ...store,
     activeTrips: store.trips.filter((trip) => trip.status === "active"),
-    completedTrips: store.trips.filter((trip) => trip.status === "ended"),
-    sosTrips: store.trips.filter((trip) => trip.status === "sos"),
+    completedTrips: store.trips.filter((trip) => trip.status === "completed"),
+    sosTrips: store.trips.filter((trip) => trip.status === "emergency"),
     hasActiveTrip: !!store.activeTrip && store.activeTrip.status === "active",
   };
 };

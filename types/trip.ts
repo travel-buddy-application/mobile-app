@@ -13,7 +13,7 @@ export interface Trip {
     lng: number;
     address?: string;
   };
-  status: "idle" | "active" | "ended" | "sos";
+  status: "planned" | "active" | "completed" | "cancelled" | "emergency";
   startAt: string; // ISO date string
   endAt?: string; // ISO date string
   contacts: string[]; // Contact IDs
