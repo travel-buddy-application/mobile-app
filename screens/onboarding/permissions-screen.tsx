@@ -4,7 +4,8 @@ import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAuthStore, usePermissionsStore } from "@/stores";
 import React, { useState } from "react";
-import { Alert, SafeAreaView, ScrollView, StyleSheet } from "react-native";
+import { Alert, ScrollView, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface PermissionsScreenProps {
   onComplete: () => void;

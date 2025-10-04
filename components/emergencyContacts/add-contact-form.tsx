@@ -270,6 +270,7 @@ export default function AddContactForm() {
             onPress={handleAddContact}
             disabled={isLoading}
             style={styles.addButton}
+            type="success"
             textStyle={styles.addButtonText}
           />
         </ThemedView>
@@ -362,23 +363,14 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: "center",
   },
   cancelButtonText: {
     fontSize: 16,
   },
   addButton: {
     flex: 1,
-    backgroundColor: "#2f95dc",
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
   },
   addButtonText: {
-    color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },

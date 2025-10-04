@@ -14,10 +14,7 @@ export const emailService = async ({
   sharingPolicy,
 }: EmailServiceParams) => {
   try {
-    console.log(
-      "Supabase Anon Key:",
-      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
-    );
+    console.log("dashboardUrl", dashboardUrl);
     const response = await fetch(
       "https://zajzaxnkswpsdwuxpdin.supabase.co/functions/v1/send-email",
       {

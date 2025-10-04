@@ -7,8 +7,8 @@ import React from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export const DashboardScreen: React.FC = () => {
-  const { user, logout } = useAuthStore();
+export const HomeScreen: React.FC = () => {
+  const { user } = useAuthStore();
   const { activeTrip, startTrip } = useTripStore();
 
   // Theme colors
@@ -16,6 +16,7 @@ export const DashboardScreen: React.FC = () => {
   const cardBackgroundColor = useThemeColor({}, "cardBackgroundColor");
   const borderColor = useThemeColor({}, "cardBorderColor");
   const textColor = useThemeColor({}, "primaryButtonText");
+
   const handleStartTrip = async () => {
     try {
       await startTrip({
@@ -36,13 +37,7 @@ export const DashboardScreen: React.FC = () => {
       console.error("Failed to start trip:", error);
     }
   };
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Reset failed:", error);
-    }
-  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -115,7 +110,7 @@ export const DashboardScreen: React.FC = () => {
           )}
         </ThemedView>
 
-        {/* Features Coming Soon */}
+        {/* Safety Features */}
         <ThemedView style={styles.featuresContainer}>
           <ThemedText type="subtitle" style={styles.featuresTitle}>
             Safety Features
@@ -133,7 +128,7 @@ export const DashboardScreen: React.FC = () => {
               <ThemedText style={styles.featureText}>
                 Real-time Location Sharing
               </ThemedText>
-              <ThemedText style={styles.comingSoon}>Coming Soon</ThemedText>
+              <ThemedText style={styles.comingSoon}>Active</ThemedText>
             </ThemedView>
             <ThemedView
               style={[styles.featureItem, { borderBottomColor: borderColor }]}
@@ -151,20 +146,9 @@ export const DashboardScreen: React.FC = () => {
               <ThemedText style={styles.featureText}>
                 Smart SOS Alerts
               </ThemedText>
-              <ThemedText style={styles.comingSoon}>Coming Soon</ThemedText>
+              <ThemedText style={styles.comingSoon}>Active</ThemedText>
             </ThemedView>
           </ThemedView>
-        </ThemedView>
-
-        {/* Debug Section (temporary) */}
-        <ThemedView style={styles.debugContainer}>
-          <ThemedText style={styles.debugTitle}>Debug Actions</ThemedText>
-          <ThemedButton
-            title="🔄 Reset App"
-            onPress={handleLogout}
-            style={styles.debugButton}
-            textStyle={styles.debugButtonText}
-          />
         </ThemedView>
       </ScrollView>
     </SafeAreaView>
@@ -179,12 +163,10 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    marginTop: 50,
     alignItems: "center",
     marginBottom: 30,
   },
   appTitle: {
-    padding: 10,
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 8,
@@ -198,24 +180,18 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   statCard: {
-    padding: 20,
-    borderRadius: 12,
     alignItems: "center",
+    padding: 15,
+    borderRadius: 12,
     minWidth: 120,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   statNumber: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 24,
+    marginBottom: 5,
   },
   statLabel: {
     fontSize: 12,
-    textAlign: "center",
-    marginTop: 4,
+    opacity: 0.7,
   },
   tripContainer: {
     marginBottom: 30,
@@ -223,9 +199,7 @@ const styles = StyleSheet.create({
   activeTripCard: {
     padding: 20,
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#4caf50",
-    backgroundColor: "#e8f5e8",
+    backgroundColor: "#4CAF50",
   },
   activeTripTitle: {
     fontSize: 18,
@@ -238,28 +212,20 @@ const styles = StyleSheet.create({
   },
   activeTripTime: {
     fontSize: 12,
-    marginBottom: 16,
+    marginBottom: 15,
   },
   sosButton: {
-    backgroundColor: "#ff4757",
-    padding: 12,
-    borderRadius: 8,
-    alignItems: "center",
+    backgroundColor: "#FF5722",
+    marginTop: 10,
   },
   sosButtonText: {
-    color: "#fff",
-    fontSize: 16,
+    color: "white",
     fontWeight: "bold",
   },
   startTripCard: {
-    padding: 24,
+    padding: 20,
     borderRadius: 12,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   startTripTitle: {
     fontSize: 18,
@@ -271,44 +237,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     marginBottom: 20,
+    opacity: 0.7,
   },
   startTripButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 8,
+    backgroundColor: "#2196F3",
     minWidth: 200,
-    alignItems: "center",
   },
   startTripButtonText: {
-    fontSize: 16,
+    color: "white",
     fontWeight: "bold",
   },
   featuresContainer: {
-    marginBottom: 30,
+    marginBottom: 20,
   },
   featuresTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 16,
+    marginBottom: 15,
   },
   featuresList: {
     borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    overflow: "hidden",
   },
   featureItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    padding: 15,
     borderBottomWidth: 1,
   },
   featureIcon: {
     fontSize: 20,
-    marginRight: 12,
+    marginRight: 15,
   },
   featureText: {
     flex: 1,
@@ -316,26 +275,7 @@ const styles = StyleSheet.create({
   },
   comingSoon: {
     fontSize: 12,
+    opacity: 0.6,
     fontStyle: "italic",
-  },
-  debugContainer: {
-    marginTop: 20,
-    padding: 16,
-    borderRadius: 8,
-  },
-  debugTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    marginBottom: 12,
-  },
-  debugButton: {
-    backgroundColor: "#666",
-    padding: 10,
-    borderRadius: 6,
-    alignItems: "center",
-  },
-  debugButtonText: {
-    color: "#fff",
-    fontSize: 12,
   },
 });

@@ -1,4 +1,5 @@
 import {
+  StyleProp,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -6,7 +7,6 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import { Colors } from "@/constants/theme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 
 export type ThemedButtonProps = {
@@ -14,8 +14,8 @@ export type ThemedButtonProps = {
   type?: "default" | "success" | "delete";
   onPress?: () => void;
   disabled?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
 };
 
 export function ThemedButton({
@@ -29,20 +29,7 @@ export function ThemedButton({
 }: ThemedButtonProps) {
   // Get theme-aware background color based on button type
   const backgroundColor = useThemeColor(
-    {
-      light:
-        type === "success"
-          ? Colors.light.successButtonBackground
-          : type === "delete"
-          ? Colors.light.deleteButtonBackground
-          : Colors.light.primaryButtonBackground,
-      dark:
-        type === "success"
-          ? Colors.dark.successButtonBackground
-          : type === "delete"
-          ? Colors.dark.deleteButtonBackground
-          : Colors.dark.primaryButtonBackground,
-    },
+    {},
     type === "success"
       ? "successButtonBackground"
       : type === "delete"
@@ -52,20 +39,7 @@ export function ThemedButton({
 
   // Get theme-aware text color based on button type
   const textColor = useThemeColor(
-    {
-      light:
-        type === "success"
-          ? Colors.light.successButtonText
-          : type === "delete"
-          ? Colors.light.deleteButtonText
-          : Colors.light.primaryButtonText,
-      dark:
-        type === "success"
-          ? Colors.dark.successButtonText
-          : type === "delete"
-          ? Colors.dark.deleteButtonText
-          : Colors.dark.primaryButtonText,
-    },
+    {},
     type === "success"
       ? "successButtonText"
       : type === "delete"
