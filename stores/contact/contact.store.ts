@@ -1,5 +1,6 @@
 import { DeepLinkService, InvitationData } from "@/services/deep-link.service";
 import { emailService } from "@/services/email.service";
+import { sendPushNotification } from "@/services/notifications.service";
 import { Contact, ContactCreateInput } from "@/types/trip";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
@@ -18,6 +19,10 @@ interface ContactStoreState {
   // Actions
   addContact: (contact: ContactCreateInput) => Promise<string>;
   updateContact: (id: string, updates: Partial<Contact>) => Promise<void>;
+  updateContactByEmail: (
+    email: string,
+    updates: Partial<Contact>
+  ) => Promise<void>;
   deleteContact: (id: string) => Promise<void>;
   selectContact: (id: string) => void;
   deselectContact: (id: string) => void;
@@ -28,6 +33,7 @@ interface ContactStoreState {
   syncContactKeys: () => Promise<void>;
   clearError: () => void;
   setShowAddForm: (show: boolean) => void;
+  acceptRequest: (invitationData: ContactCreateInput) => Promise<string>;
 }
 
 export const useContactStore = create<ContactStoreState>()(
@@ -80,6 +86,9 @@ export const useContactStore = create<ContactStoreState>()(
 
             const authState = useAuthStore.getState(); // <-- get fresh state
             const user = authState.user;
+            if (!user) {
+              throw new Error("User not logged in");
+            }
 
             const newContact: Contact = {
               id: Date.now().toString(),
@@ -97,15 +106,15 @@ export const useContactStore = create<ContactStoreState>()(
               );
             }
             const invitationData: InvitationData = {
-              senderName: user?.name || "Your Friend",
-              email: user?.email || "",
-              phone: user?.phone || "",
-              fcmToken: user?.id || "", // Use user ID as FCM token for now
+              senderName: user.name || "Your Friend",
+              email: user.email || "",
+              phone: user.phone || "",
+              fcmToken: user.fcmToken || "",
               receiverEmail: newContact.email,
             };
             await emailService({
               contactPerson: newContact.displayName,
-              person: user?.name || "Your Friend",
+              person: user.name || "Your Friend",
               receiverEmail: newContact.email,
               dashboardUrl:
                 DeepLinkService.generateInvitationLink(invitationData),
@@ -117,6 +126,68 @@ export const useContactStore = create<ContactStoreState>()(
               contacts,
               isLoading: false,
             });
+
+            return newContact.id;
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : "Failed to add contact";
+            set({
+              error: errorMessage,
+              isLoading: false,
+            });
+            throw error;
+          }
+        },
+
+        // Accept contact request (from invitation)
+        acceptRequest: async (invitationData: ContactCreateInput) => {
+          set({ isLoading: true, error: null });
+          try {
+            const authState = useAuthStore.getState();
+            const currentUser = authState.user;
+
+            if (!currentUser) {
+              throw new Error("User not logged in");
+            }
+
+            const newContact: Contact = {
+              id: Date.now().toString(),
+              ...invitationData,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              status: "accepted",
+            };
+            const contacts = [...get().contacts, newContact];
+
+            set({
+              contacts,
+              isLoading: false,
+            });
+
+            // Send push notification to the contact requester if they have an FCM token
+            if (invitationData.pushToken) {
+              try {
+                await sendPushNotification({
+                  token: invitationData.pushToken,
+                  title: "Contact Request Accepted!",
+                  body: `${currentUser.name} has accepted your contact request and added you as an emergency contact.`,
+                  rawData: {
+                    type: "accept_contact_request",
+                    senderFcmToken: currentUser.fcmToken || "",
+                    senderName: currentUser.name || "",
+                    senderEmail: currentUser.email || "",
+                    senderPhone: currentUser.phone || "",
+                  },
+                });
+                console.log("✅ Push notification sent to contact requester");
+              } catch (notificationError) {
+                console.warn(
+                  "⚠️ Failed to send push notification:",
+                  notificationError
+                );
+                // Don't throw error as the main operation (adding contact) was successful
+              }
+            }
 
             return newContact.id;
           } catch (error) {
@@ -155,6 +226,55 @@ export const useContactStore = create<ContactStoreState>()(
                   }
                 }
 
+                return updatedContact;
+              }
+              return contact;
+            });
+
+            set({
+              contacts,
+              isLoading: false,
+            });
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : "Failed to update contact";
+            set({
+              error: errorMessage,
+              isLoading: false,
+            });
+            throw error;
+          }
+        },
+
+        updateContactByEmail: async (
+          email: string,
+          updates: Partial<Contact>
+        ) => {
+          set({ isLoading: true, error: null });
+          try {
+            const contacts = get().contacts.map((contact) => {
+              if (contact.email.toLowerCase() === email.toLowerCase()) {
+                console.log("🔄 Updating contact by email:", email, updates);
+                const updatedContact = {
+                  ...contact,
+                  ...updates,
+                  updatedAt: new Date().toISOString(),
+                };
+                console.log("🔄 Updated contact data:", updatedContact);
+                // Update secure storage if push token changed
+                if (updates.pushToken !== undefined) {
+                  if (updates.pushToken) {
+                    SecureStore.setItemAsync(
+                      `contact_token_${contact.id}`,
+                      updates.pushToken
+                    );
+                  } else {
+                    SecureStore.deleteItemAsync(`contact_token_${contact.id}`);
+                  }
+                }
+                console.log("✅ Contact updated by email:", updatedContact);
                 return updatedContact;
               }
               return contact;

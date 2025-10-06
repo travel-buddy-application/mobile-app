@@ -6,6 +6,7 @@ import {
   isValidEmail,
   isValidPhoneNumber,
 } from "@/utils/validation";
+import { router } from "expo-router";
 import { useState } from "react";
 import { Alert, StyleSheet, TextInput, TouchableOpacity } from "react-native";
 import { ThemedButton } from "../themed-button";
@@ -87,6 +88,9 @@ export default function AddContactForm() {
         "Failed to add emergency contact. Please try again.",
         [{ text: "OK" }]
       );
+      if (error instanceof Error && error?.message === "User not logged in") {
+        router.push("/(onboarding)/welcome");
+      }
     }
   };
   const updateField = (field: keyof ContactCreateInput, value: string) => {

@@ -4,6 +4,10 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ContactExists } from "@/components/invite/contact-exists";
+import { InvalidData } from "@/components/invite/invalid-data";
+import { UserNotLoggedIn } from "@/components/invite/user-not-logged-in";
+import { WrongRecipient } from "@/components/invite/wrong-recipient";
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -18,7 +22,7 @@ export default function InviteAcceptScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { user } = useAuthStore();
-  const { addContact, contacts } = useContactStore();
+  const { acceptRequest, contacts } = useContactStore();
   const [accepted, setAccepted] = useState(false);
 
   // Memoize invitation data to prevent re-parsing on every render
@@ -45,6 +49,9 @@ export default function InviteAcceptScreen() {
 
   // Check if the invitation is valid
   const invitationStatus = useMemo(() => {
+    if (!user) {
+      return { type: "user_not_logged_in", message: "User not logged in" };
+    }
     if (!invitationData) {
       return { type: "invalid", message: "Invalid invitation data" };
     }
@@ -77,7 +84,7 @@ export default function InviteAcceptScreen() {
     }
 
     return { type: "valid" };
-  }, [invitationData, user?.email, contacts]);
+  }, [user, invitationData, contacts, accepted]);
 
   // Memoize theme colors to prevent recalculation
   const backgroundColor = useThemeColor(
@@ -104,12 +111,12 @@ export default function InviteAcceptScreen() {
 
     try {
       setAccepted(true);
-      await addContact({
+      await acceptRequest({
         displayName: invitationData.senderName,
-        email: invitationData.email,
         phone: invitationData.phone,
-        sharingPolicy: "all",
+        email: invitationData.email,
         pushToken: invitationData.fcmToken,
+        sharingPolicy: "alerts",
       });
 
       Alert.alert(
@@ -123,15 +130,15 @@ export default function InviteAcceptScreen() {
         ]
       );
     } catch (error) {
-      console.error("Error accepting invitation:", error);
       Alert.alert("Error", "Failed to accept invitation. Please try again.", [
         { text: "OK" },
         { text: "Retry", onPress: handleAcceptInvitation },
       ]);
+      void error;
     } finally {
       setIsLoading(false);
     }
-  }, [invitationData, addContact]);
+  }, [invitationData, acceptRequest]);
 
   const handleDecline = useCallback(() => {
     Alert.alert(
@@ -148,107 +155,32 @@ export default function InviteAcceptScreen() {
     );
   }, []);
 
-  const handleGoHome = useCallback(() => {
-    router.back();
-  }, []);
-
   // Handle invalid invitation
   if (!invitationData || invitationStatus.type === "invalid") {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor }]}>
-        <ThemedView style={styles.errorContainer}>
-          <MaterialIcons name="error-outline" size={64} color="#ff6b6b" />
-          <ThemedText style={styles.errorTitle}>Invalid Invitation</ThemedText>
-          <ThemedText style={styles.errorMessage}>
-            This invitation link is invalid or has expired.
-          </ThemedText>
-          <ThemedButton
-            title="Go Home"
-            onPress={handleGoHome}
-            style={styles.button}
-            type="success"
-          />
-        </ThemedView>
-      </SafeAreaView>
-    );
+    return <InvalidData />;
   }
 
   // Handle wrong recipient
   if (invitationStatus.type === "wrong_recipient") {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor }]}>
-        <ThemedView style={styles.errorContainer}>
-          <MaterialIcons name="person-off" size={64} color="#ff9800" />
-          <ThemedText style={styles.errorTitle}>Wrong Recipient</ThemedText>
-          <ThemedText style={styles.errorMessage}>
-            {invitationStatus.message}
-          </ThemedText>
-          <ThemedText style={styles.errorMessage}>
-            Please make sure you&apos;re logged in with the correct email
-            address or contact the sender.
-          </ThemedText>
-          <ThemedButton
-            title="Go Home"
-            onPress={handleGoHome}
-            style={styles.button}
-            type="success"
-          />
-        </ThemedView>
-      </SafeAreaView>
-    );
+    return <WrongRecipient />;
   }
 
   // Handle contact already exists
   if (invitationStatus.type === "already_exists") {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor }]}>
-        <ThemedView style={styles.errorContainer}>
-          <MaterialIcons name="person-add-disabled" size={64} color="#2196F3" />
-          <ThemedText style={styles.errorTitle}>Already Connected</ThemedText>
-          <ThemedText style={styles.errorMessage}>
-            {invitationStatus.message}
-          </ThemedText>
-          <ThemedText style={styles.errorMessage}>
-            {invitationData.senderName} is already listed as &quot;
-            {invitationStatus.contactName}&quot; in your emergency contacts.
-          </ThemedText>
-          <View style={styles.buttonContainer}>
-            <ThemedButton
-              title="View Contacts"
-              onPress={() => router.push("/(tabs)/contacts")}
-              style={styles.button}
-              type="success"
-            />
-            <ThemedButton
-              title="Go Home"
-              onPress={handleGoHome}
-              style={styles.button}
-            />
-          </View>
-        </ThemedView>
-      </SafeAreaView>
+      <ContactExists
+        senderName={invitationData.senderName}
+        contactName={invitationStatus.contactName || "Contact Name"}
+      />
     );
   }
 
-  if (!invitationData) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor }]}>
-        <ThemedView style={styles.errorContainer}>
-          <MaterialIcons name="error-outline" size={64} color="#ff6b6b" />
-          <ThemedText style={styles.errorTitle}>Invalid Invitation</ThemedText>
-          <ThemedText style={styles.errorMessage}>
-            This invitation link is invalid or has expired.
-          </ThemedText>
-          <ThemedButton
-            title="Go Home"
-            onPress={handleGoHome}
-            style={styles.button}
-          />
-        </ThemedView>
-      </SafeAreaView>
-    );
+  // handle user not logged in
+  if (invitationStatus.type === "user_not_logged_in") {
+    return <UserNotLoggedIn />;
   }
 
+  // Main invitation acceptance UI
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <ScrollView
