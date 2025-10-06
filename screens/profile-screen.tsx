@@ -115,7 +115,7 @@ export const ProfileScreen: React.FC = () => {
           onPress: async () => {
             try {
               await logout();
-              router.replace("/(onboarding)/welcome");
+              router.push("/(onboarding)/welcome");
             } catch (error) {
               console.error("Logout failed:", error);
             }

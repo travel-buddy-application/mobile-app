@@ -1,29 +1,92 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ContactExists } from "@/components/invite/contact-exists";
+import { InvalidData } from "@/components/invite/invalid-data";
+import { UserNotLoggedIn } from "@/components/invite/user-not-logged-in";
+import { WrongRecipient } from "@/components/invite/wrong-recipient";
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { InvitationData } from "@/services/deep-link.service";
+import { useAuthStore } from "@/stores/auth/auth.store";
 import { useContactStore } from "@/stores/contact/contact.store";
 
 export default function InviteAcceptScreen() {
   const params = useLocalSearchParams();
-  const [invitationData, setInvitationData] = useState<InvitationData | null>(
-    null
-  );
   const [isLoading, setIsLoading] = useState(false);
 
-  const { addContact } = useContactStore();
+  const { user } = useAuthStore();
+  const { acceptRequest, contacts } = useContactStore();
+  const [accepted, setAccepted] = useState(false);
 
-  // Set system UI theme when screen loads
+  // Memoize invitation data to prevent re-parsing on every render
+  const invitationData = useMemo<InvitationData | null>(() => {
+    if (params.senderName && params.email && params.phone) {
+      return {
+        senderName: params.senderName as string,
+        email: params.email as string,
+        phone: params.phone as string,
+        fcmToken: (params.fcmToken as string) || undefined,
+        message: (params.message as string) || undefined,
+        receiverEmail: (params.receiverEmail as string) || "",
+      };
+    }
+    return null;
+  }, [
+    params.senderName,
+    params.email,
+    params.phone,
+    params.fcmToken,
+    params.message,
+    params.receiverEmail,
+  ]);
 
+  // Check if the invitation is valid
+  const invitationStatus = useMemo(() => {
+    if (!user) {
+      return { type: "user_not_logged_in", message: "User not logged in" };
+    }
+    if (!invitationData) {
+      return { type: "invalid", message: "Invalid invitation data" };
+    }
 
+    // Check if receiver email matches current user's email
+    if (
+      invitationData.receiverEmail &&
+      user?.email &&
+      invitationData.receiverEmail !== user.email
+    ) {
+      return {
+        type: "wrong_recipient",
+        message: `This invitation is for ${invitationData.receiverEmail}, but you are logged in as ${user.email}`,
+      };
+    }
+
+    // Check if sender is already in contacts
+    const existingContact = contacts.find(
+      (contact) =>
+        contact.email === invitationData.email ||
+        contact.phone === invitationData.phone
+    );
+
+    if (existingContact && !accepted) {
+      return {
+        type: "already_exists",
+        message: `${invitationData.senderName} is already in your emergency contacts`,
+        contactName: existingContact.displayName,
+      };
+    }
+
+    return { type: "valid" };
+  }, [user, invitationData, contacts, accepted]);
+
+  // Memoize theme colors to prevent recalculation
   const backgroundColor = useThemeColor(
     { light: Colors.light.background, dark: Colors.dark.background },
     "background"
@@ -37,20 +100,8 @@ export default function InviteAcceptScreen() {
     "cardBackgroundColor"
   );
 
-  useEffect(() => {
-    // Parse invitation data from URL params
-    if (params.senderName && params.email && params.phone) {
-      setInvitationData({
-        senderName: params.senderName as string,
-        email: params.email as string,
-        phone: params.phone as string,
-        fcmToken: (params.fcmToken as string) || undefined,
-        message: (params.message as string) || undefined,
-      });
-    }
-  }, [params]);
-
-  const handleAcceptInvitation = async () => {
+  // Use useCallback to prevent function recreation on every render
+  const handleAcceptInvitation = useCallback(async () => {
     if (!invitationData) {
       Alert.alert("Error", "Invalid invitation data");
       return;
@@ -59,12 +110,13 @@ export default function InviteAcceptScreen() {
     setIsLoading(true);
 
     try {
-      await addContact({
+      setAccepted(true);
+      await acceptRequest({
         displayName: invitationData.senderName,
-        email: invitationData.email,
         phone: invitationData.phone,
-        sharingPolicy: "all",
+        email: invitationData.email,
         pushToken: invitationData.fcmToken,
+        sharingPolicy: "alerts",
       });
 
       Alert.alert(
@@ -78,17 +130,17 @@ export default function InviteAcceptScreen() {
         ]
       );
     } catch (error) {
-      console.error("Error accepting invitation:", error);
       Alert.alert("Error", "Failed to accept invitation. Please try again.", [
         { text: "OK" },
         { text: "Retry", onPress: handleAcceptInvitation },
       ]);
+      void error;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [invitationData, acceptRequest]);
 
-  const handleDecline = () => {
+  const handleDecline = useCallback(() => {
     Alert.alert(
       "Decline Invitation",
       "Are you sure you want to decline this invitation?",
@@ -101,27 +153,34 @@ export default function InviteAcceptScreen() {
         },
       ]
     );
-  };
+  }, []);
 
-  if (!invitationData) {
+  // Handle invalid invitation
+  if (!invitationData || invitationStatus.type === "invalid") {
+    return <InvalidData />;
+  }
+
+  // Handle wrong recipient
+  if (invitationStatus.type === "wrong_recipient") {
+    return <WrongRecipient />;
+  }
+
+  // Handle contact already exists
+  if (invitationStatus.type === "already_exists") {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor }]}>
-        <ThemedView style={styles.errorContainer}>
-          <MaterialIcons name="error-outline" size={64} color="#ff6b6b" />
-          <ThemedText style={styles.errorTitle}>Invalid Invitation</ThemedText>
-          <ThemedText style={styles.errorMessage}>
-            This invitation link is invalid or has expired.
-          </ThemedText>
-          <ThemedButton
-            title="Go Home"
-            onPress={() => router.back()}
-            style={styles.button}
-          />
-        </ThemedView>
-      </SafeAreaView>
+      <ContactExists
+        senderName={invitationData.senderName}
+        contactName={invitationStatus.contactName || "Contact Name"}
+      />
     );
   }
 
+  // handle user not logged in
+  if (invitationStatus.type === "user_not_logged_in") {
+    return <UserNotLoggedIn />;
+  }
+
+  // Main invitation acceptance UI
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <ScrollView
@@ -310,7 +369,7 @@ const styles = StyleSheet.create({
   },
   senderName: {
     fontSize: 20,
-    fontWeight: "semibold",
+    fontWeight: "600",
     marginBottom: 4,
   },
   senderEmail: {
@@ -339,7 +398,7 @@ const styles = StyleSheet.create({
   },
   messageLabel: {
     fontSize: 14,
-    fontWeight: "semibold",
+    fontWeight: "600",
     marginBottom: 8,
   },
   messageText: {
@@ -359,7 +418,7 @@ const styles = StyleSheet.create({
   },
   benefitsTitle: {
     fontSize: 18,
-    fontWeight: "semibold",
+    fontWeight: "600",
     marginBottom: 16,
   },
   benefitItem: {

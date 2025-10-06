@@ -1,3 +1,4 @@
+import { fcmService } from "@/services/fcm.service";
 import {
   EmergencyContact,
   OnboardingSteps,
@@ -56,11 +57,23 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: true, error: null });
 
           try {
+            // Initialize FCM service if not already done
+            await fcmService.initialize();
+
+            // Get FCM token for push notifications
+            const fcmToken = await fcmService.getToken();
+
+            if (!fcmToken) {
+              throw new Error(
+                "Failed to get FCM token, Check your internet connection, cannot proceed with profile creation"
+              );
+            }
             const newUser: User = {
               id: Date.now().toString(),
               name: userData.name.trim(),
               phone: userData.phone.trim(),
               email: userData.email?.trim(),
+              fcmToken: fcmToken || "",
               emergencyContacts: [],
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),

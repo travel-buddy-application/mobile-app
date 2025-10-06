@@ -8,6 +8,7 @@ export interface User {
   emergencyContacts: EmergencyContact[];
   createdAt: string;
   updatedAt: string;
+  fcmToken: string;
 }
 
 export interface EmergencyContact {

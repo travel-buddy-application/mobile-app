@@ -11,6 +11,7 @@ import "react-native-reanimated";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTripStoreInitialization } from "@/hooks/use-trip-store-initialization";
 import { databaseService } from "@/services/database/database.service";
+import { fcmService } from "@/services/fcm.service";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -24,10 +25,15 @@ export default function RootLayout() {
 
   // Initialize database on app start
   useEffect(() => {
-    const initializeDatabase = async () => {
+    const initializeServices = async () => {
       try {
-        console.log("🚀 Initializing Travel Buddy database...");
+        console.log("🚀 Initializing Travel Buddy services...");
+
+        // Initialize database
         await databaseService.initialize();
+
+        // Initialize FCM notifications
+        await fcmService.initialize();
 
         // Run health check
         const isHealthy = await databaseService.healthCheck();
@@ -38,13 +44,13 @@ export default function RootLayout() {
           console.error("❌ Database health check failed");
         }
       } catch (error) {
-        console.error("💥 Database initialization error:", error);
+        console.error("💥 Services initialization error:", error);
         // Still allow app to continue with AsyncStorage fallback
         setIsDatabaseReady(true);
       }
     };
 
-    initializeDatabase();
+    initializeServices();
   }, []);
   // Show loading screen while database and trip store initialize
   if (!isDatabaseReady || !isTripStoreReady) {
