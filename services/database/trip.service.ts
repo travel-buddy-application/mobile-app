@@ -45,6 +45,8 @@ export class TripDatabaseService {
           created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
+      console.log("🔍 Creating trip with contacts:", newTrip.contacts);
+      console.log("🔍 Stringified contacts:", JSON.stringify(newTrip.contacts));
 
       await db.runAsync(
         query,
@@ -64,6 +66,7 @@ export class TripDatabaseService {
       );
 
       console.log("✅ Trip created successfully:", newTrip.id);
+      console.log("✅ Trip created with contacts:", newTrip.contacts);
       return newTrip;
     } catch (error) {
       console.error("❌ Error creating trip:", error);
@@ -151,7 +154,6 @@ export class TripDatabaseService {
       throw new Error("Failed to fetch trip");
     }
   }
-
   /**
    * Update trip status and other fields
    */ static async updateTrip(
@@ -163,33 +165,41 @@ export class TripDatabaseService {
     try {
       const updatedAt = new Date().toISOString();
 
-      // Build update fields dynamically
-      const updateFields: string[] = [`updated_at = '${updatedAt}'`];
+      // Build update fields and parameters using proper parameter binding
+      const updateFields: string[] = ["updated_at = ?"];
+      const parameters: any[] = [updatedAt];
 
       if (updates.status) {
-        updateFields.push(`status = '${updates.status}'`);
+        updateFields.push("status = ?");
+        parameters.push(updates.status);
       }
       if (updates.endAt) {
-        updateFields.push(`actual_end_time = '${updates.endAt}'`);
+        updateFields.push("actual_end_time = ?");
+        parameters.push(updates.endAt);
       }
-
       if (updates.title) {
-        updateFields.push(`name = '${updates.title}'`);
+        updateFields.push("name = ?");
+        parameters.push(updates.title);
+      }
+      if (updates.contacts) {
+        updateFields.push("emergency_contacts = ?");
+        parameters.push(JSON.stringify(updates.contacts));
       }
 
-      if (updates.contacts) {
-        updateFields.push(
-          `emergency_contacts = '${JSON.stringify(updates.contacts)}'`
-        );
-      }
+      // Add WHERE clause parameters
+      parameters.push(id);
+      parameters.push("current-user");
 
       const query = `
         UPDATE trips 
         SET ${updateFields.join(", ")}
-        WHERE id = '${id}' AND user_id = 'current-user'
+        WHERE id = ? AND user_id = ?
       `;
 
-      await db.execAsync(query);
+      console.log("🔄 Updating trip with query:", query);
+      console.log("🔄 Parameters:", parameters);
+
+      await db.runAsync(query, ...parameters);
 
       // Fetch and return updated trip
       const updatedTrip = await this.getTripById(id);
@@ -198,6 +208,7 @@ export class TripDatabaseService {
       }
 
       console.log("✅ Trip updated successfully:", id);
+      console.log("✅ Updated trip contacts:", updatedTrip.contacts);
       return updatedTrip;
     } catch (error) {
       console.error("❌ Error updating trip:", error);

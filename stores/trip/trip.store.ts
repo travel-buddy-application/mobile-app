@@ -1,5 +1,10 @@
 import { TripDatabaseService } from "@/services/database/trip.service";
-import { periodicLocationSharingService } from "@/services/location/periodic-location-sharing.service";
+import {
+  periodicLocationSharingService,
+  PeriodicLocationSharingService,
+} from "@/services/location/periodic-location-sharing.service";
+import { TripCompletionNotificationService } from "@/services/trip-completion-notifications.service";
+import { useLocationStore } from "@/stores/location/location.store";
 import { LocationSample, Trip, TripCreateInput } from "@/types/trip";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
@@ -133,11 +138,40 @@ export const useTripStore = create<TripState>()(
               trips: updatedTrips,
               activeTrip: null,
               isLoading: false,
-            });
-
-            // Stop periodic location sharing
+            }); // Stop periodic location sharing
             periodicLocationSharingService.stopPeriodicSharing();
-            console.log("📍 Periodic location sharing stopped");
+            console.log("📍 Periodic location sharing stopped"); // Send trip completion notifications to emergency contacts
+            try {
+              console.log(
+                "🔍 Debug: Trip completion - checking contacts data:"
+              );
+              console.log("- Trip ID:", updatedTrip.id);
+              console.log("- Trip contacts array:", updatedTrip.contacts);
+              console.log(
+                "- Trip contacts length:",
+                updatedTrip.contacts?.length || 0
+              );
+
+              const notificationResult =
+                await TripCompletionNotificationService.sendTripCompletionNotifications(
+                  updatedTrip
+                );
+              if (notificationResult.success) {
+                console.log(
+                  `🔔 Trip completion notifications sent: ${notificationResult.message}`
+                );
+              } else {
+                console.warn(
+                  `⚠️ Trip completion notifications failed: ${notificationResult.message}`
+                );
+              }
+            } catch (notificationError) {
+              console.error(
+                "❌ Failed to send trip completion notifications:",
+                notificationError
+              );
+              // Don't fail the trip completion if notifications fail
+            }
 
             console.log("🏁 Trip ended successfully:", targetTripId);
           } catch (error) {
@@ -173,15 +207,41 @@ export const useTripStore = create<TripState>()(
               trip.id === targetTripId ? updatedTrip : trip
             );
 
-            // TODO: Trigger SOS notifications via service
-            // await SOSService.triggerEmergency(targetTripId);
-
             set({
               trips: updatedTrips,
               activeTrip:
                 updatedTrips.find((t) => t.id === targetTripId) || null,
               isLoading: false,
-            });
+            }); // Send emergency notifications via periodic location sharing service
+            try {
+              const locationStore = useLocationStore.getState();
+              if (locationStore.currentLocation) {
+                const result =
+                  await PeriodicLocationSharingService.sendManualEmergencyAlert(
+                    updatedTrip,
+                    locationStore.currentLocation,
+                    "🚨 SOS EMERGENCY: Help needed immediately!"
+                  );
+
+                if (result.success) {
+                  console.log(
+                    `🚨 Emergency notifications sent to ${result.sentCount} contacts`
+                  );
+                } else {
+                  console.warn(
+                    "⚠️ No emergency contacts available for SOS alerts"
+                  );
+                }
+              } else {
+                console.warn("⚠️ No location available for SOS alert");
+              }
+            } catch (notificationError) {
+              console.error(
+                "❌ Failed to send SOS notifications:",
+                notificationError
+              );
+              // Don't fail the SOS trigger if notifications fail
+            }
 
             console.log("🆘 SOS triggered successfully:", targetTripId);
           } catch (error) {

@@ -45,8 +45,33 @@ export default function LocationServicesScreen() {
       }`
     );
   };
-
   const handleStartTripWithLocation = async () => {
+    try {
+      // Use actual contact IDs from the contact store for the demo trip
+      const contactIds = contactStore.contacts.map((contact) => contact.id);
+      console.log("🔍 Demo trip - using contact IDs:", contactIds);
+      console.log("🔍 Available contacts:", contactStore.contacts.length);
+
+      if (contactIds.length === 0) {
+        Alert.alert(
+          "No Emergency Contacts",
+          "Demo trip will be created without emergency contacts. Add contacts in the Contacts tab to test trip completion notifications.",
+          [
+            {
+              text: "OK, Continue Anyway",
+              onPress: () => startTripWithContacts([]),
+            },
+          ]
+        );
+        return;
+      }
+
+      startTripWithContacts(contactIds);
+    } catch (error) {
+      Alert.alert("Error", `Failed to start trip: ${error}`);
+    }
+  };
+  const startTripWithContacts = async (contactIds: string[]) => {
     try {
       await TripLocationIntegrationService.startTripWithLocationTracking({
         title: "Demo Safety Trip",
@@ -60,10 +85,17 @@ export default function LocationServicesScreen() {
           lng: -73.9851,
           address: "Times Square, NY",
         },
-        contacts: [], // In real app, this would have contact IDs
+        contacts: contactIds, // Use actual contact IDs from contact store
       });
 
-      Alert.alert("Success", "Trip started with location tracking!");
+      Alert.alert(
+        "Success",
+        `Trip started with location tracking!${
+          contactIds.length > 0
+            ? ` (${contactIds.length} emergency contacts)`
+            : ""
+        }`
+      );
       updateStatus();
     } catch (error) {
       Alert.alert("Error", `Failed to start trip: ${error}`);
@@ -249,9 +281,11 @@ export default function LocationServicesScreen() {
         "No active trip or current location available."
       );
       return;
-    }
+    } // Refresh the active trip data to ensure we have the latest version
+    await tripStore.fetchTrips();
+    const currentActiveTrip = tripStore.activeTrip;
 
-    if (!tripStore.activeTrip) {
+    if (!currentActiveTrip) {
       Alert.alert("Error", "No active trip found");
       return;
     }
@@ -260,7 +294,7 @@ export default function LocationServicesScreen() {
       // Use the new manual emergency alert service
       const result =
         await PeriodicLocationSharingService.sendManualEmergencyAlert(
-          tripStore.activeTrip,
+          currentActiveTrip,
           locationStore.currentLocation,
           "🚨 EMERGENCY: I need immediate help! This is my current location."
         );
