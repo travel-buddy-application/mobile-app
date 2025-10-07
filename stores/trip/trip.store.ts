@@ -1,4 +1,5 @@
 import { TripDatabaseService } from "@/services/database/trip.service";
+import { periodicLocationSharingService } from "@/services/location/periodic-location-sharing.service";
 import { LocationSample, Trip, TripCreateInput } from "@/types/trip";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
@@ -23,6 +24,9 @@ interface TripState {
   clearLocationHistory: (tripId?: string) => Promise<void>;
   clearError: () => void;
   initializeFromDatabase: () => Promise<void>;
+
+  // Periodic location sharing
+  isPeriodicSharingActive: () => boolean;
 }
 
 export const useTripStore = create<TripState>()(
@@ -49,6 +53,23 @@ export const useTripStore = create<TripState>()(
               activeTrip: newTrip,
               isLoading: false,
             });
+
+            // Start periodic location sharing via push notifications
+            try {
+              await periodicLocationSharingService.startPeriodicSharing(
+                newTrip
+              );
+              console.log(
+                "📍 Automatic location sharing started for trip:",
+                newTrip.id
+              );
+            } catch (locationError) {
+              console.warn(
+                "⚠️ Failed to start periodic location sharing:",
+                locationError
+              );
+              // Don't fail the trip creation if location sharing fails
+            }
 
             console.log("🚀 Trip started successfully:", newTrip.id);
             return newTrip;
@@ -108,12 +129,15 @@ export const useTripStore = create<TripState>()(
             const updatedTrips = trips.map((trip) =>
               trip.id === targetTripId ? updatedTrip : trip
             );
-
             set({
               trips: updatedTrips,
               activeTrip: null,
               isLoading: false,
             });
+
+            // Stop periodic location sharing
+            periodicLocationSharingService.stopPeriodicSharing();
+            console.log("📍 Periodic location sharing stopped");
 
             console.log("🏁 Trip ended successfully:", targetTripId);
           } catch (error) {
@@ -317,6 +341,11 @@ export const useTripStore = create<TripState>()(
               isLoading: false,
             });
           }
+        },
+
+        // Check if periodic location sharing is active
+        isPeriodicSharingActive: () => {
+          return periodicLocationSharingService.isPeriodicSharingActive();
         },
       }),
       {

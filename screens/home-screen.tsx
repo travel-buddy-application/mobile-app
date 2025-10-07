@@ -1,7 +1,6 @@
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { useDatabase } from "@/hooks/use-database";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import {
   useAuthStore,
@@ -9,8 +8,6 @@ import {
   useTripSelectors,
   useTripStore,
 } from "@/stores";
-import LocationDatabaseFix from "@/utils/location-db-fix";
-import simpleDbTest from "@/utils/simple-db-test";
 import { router } from "expo-router";
 import React from "react";
 import { ScrollView, StyleSheet } from "react-native";
@@ -21,120 +18,6 @@ export const HomeScreen: React.FC = () => {
   const { activeTrip, startTrip } = useTripStore();
   const { trips, completedTrips } = useTripSelectors();
   const { contacts } = useContactStore();
-  const { dbInfo, isLoading, refreshDatabaseInfo } = useDatabase();
-
-  const handleRunSimpleTest = async () => {
-    await simpleDbTest.runAllTests();
-    // Refresh database info after test
-    await refreshDatabaseInfo();
-  };
-
-  // Test Foreign Key Constraints Fix
-  const handleTestForeignKeyFix = async () => {
-    try {
-      console.log("🔑 Testing Foreign Key Constraints Fix...");
-      const { databaseService } = await import(
-        "@/services/database/database.service"
-      );
-      const isValid = await databaseService.validateForeignKeyConstraints();
-
-      if (isValid) {
-        console.log("✅ Foreign key fix working - trips can be created!");
-      } else {
-        console.log(
-          "❌ Foreign key fix failed - constraint violation still occurs"
-        );
-      }
-
-      await refreshDatabaseInfo();
-    } catch (error) {
-      console.error("❌ Foreign key test failed:", error);
-    }
-  };
-
-  // Ensure Default User (Debug)
-  const handleEnsureDefaultUser = async () => {
-    try {
-      console.log("👤 Ensuring default user exists...");
-      const { databaseService } = await import(
-        "@/services/database/database.service"
-      );
-      await databaseService.ensureDefaultUserExists();
-      console.log("✅ Default user check completed");
-      await refreshDatabaseInfo();
-    } catch (error) {
-      console.error("❌ Default user check failed:", error);
-    }
-  };
-
-  const handleSimpleCleanup = async () => {
-    await simpleDbTest.simpleCleanup();
-    // Refresh database info after cleanup
-    await refreshDatabaseInfo();
-  };
-
-  // Trip Store Testing Functions
-  const handleTestTripOperations = async () => {
-    try {
-      console.log("🧪 Testing SQLite Trip Operations...");
-
-      // Test creating a trip
-      const testTrip = await startTrip({
-        title: "Test SQLite Trip",
-        origin: {
-          lat: 40.7128,
-          lng: -74.006,
-          address: "New York, NY",
-        },
-        destination: {
-          lat: 34.0522,
-          lng: -118.2437,
-          address: "Los Angeles, CA",
-        },
-        contacts: contacts.map((c) => c.id) || [],
-      });
-
-      console.log("✅ Test trip created:", testTrip.id); // Test fetching trips
-      await handleLoadTrips();
-
-      // Refresh database info after trip operations
-      await refreshDatabaseInfo();
-    } catch (error) {
-      console.error("❌ Trip testing failed:", error);
-    }
-  };
-
-  const handleLoadTrips = async () => {
-    try {
-      console.log("📋 Loading trips from SQLite...");
-      const { fetchTrips, trips } = useTripStore.getState();
-      await fetchTrips();
-      console.log(`✅ Loaded ${trips.length} trips from database`);
-    } catch (error) {
-      console.error("❌ Failed to load trips:", error);
-    }
-  };
-  // Run Comprehensive FK Validation
-  const handleComprehensiveValidation = async () => {
-    try {
-      console.log("🔬 Running comprehensive foreign key validation...");
-      await simpleDbTest.validateAllFixes();
-      await refreshDatabaseInfo();
-    } catch (error) {
-      console.error("❌ Comprehensive validation failed:", error);
-    }
-  };
-
-  // Location Database Fix
-  const handleLocationDatabaseFix = async () => {
-    try {
-      console.log("📍 Running Location Database Fix Tests...");
-      await LocationDatabaseFix.runAllTests();
-      await refreshDatabaseInfo();
-    } catch (error) {
-      console.error("❌ Location database fix failed:", error);
-    }
-  };
 
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");
@@ -278,111 +161,6 @@ export const HomeScreen: React.FC = () => {
             </ThemedView>
           </ThemedView>
         </ThemedView>
-        {/* Database Testing Section (Development Only) */}
-        <ThemedView style={styles.databaseContainer}>
-          <ThemedText type="subtitle" style={styles.databaseTitle}>
-            🗄️ Database Testing (Dev Only)
-          </ThemedText>
-          <ThemedView
-            style={[
-              styles.databaseCard,
-              { backgroundColor: cardBackgroundColor, borderColor },
-            ]}
-          >
-            <ThemedText style={styles.databaseInfo}>
-              Tables: {dbInfo?.tables?.length || 0} | Users:
-              {dbInfo?.counts?.users || 0} | Trips: {dbInfo?.counts?.trips || 0}
-            </ThemedText>
-            <ThemedView style={styles.databaseButtonsRow}>
-              <ThemedButton
-                title={isLoading ? "Running..." : "Test"}
-                onPress={handleRunSimpleTest}
-                disabled={isLoading}
-                style={styles.smallTestButton}
-                textStyle={styles.smallButtonText}
-              />
-              <ThemedButton
-                title="Refresh"
-                onPress={refreshDatabaseInfo}
-                disabled={isLoading}
-                style={styles.smallRefreshButton}
-                textStyle={styles.smallButtonText}
-              />
-              <ThemedButton
-                title="Clean"
-                onPress={handleSimpleCleanup}
-                disabled={isLoading}
-                type="delete"
-                style={styles.smallCleanButton}
-                textStyle={styles.smallButtonText}
-              />
-            </ThemedView>
-            <ThemedView style={styles.databaseButtonsRow}>
-              <ThemedButton
-                title="Fix Default User"
-                onPress={handleEnsureDefaultUser}
-                type="default"
-                style={styles.fixButton}
-                textStyle={styles.smallButtonText}
-              />
-            </ThemedView>
-          </ThemedView>
-        </ThemedView>
-        {/* Trip Store Testing Section (Development Only) */}
-        <ThemedView style={styles.databaseContainer}>
-          <ThemedText type="subtitle" style={styles.databaseTitle}>
-            🚗 Trip Store Testing (Dev Only)
-          </ThemedText>
-          <ThemedView
-            style={[
-              styles.databaseCard,
-              { backgroundColor: cardBackgroundColor, borderColor },
-            ]}
-          >
-            <ThemedText style={styles.databaseInfo}>
-              Section 2: SQLite Trip Store Integration Testing
-            </ThemedText>
-            <ThemedView style={styles.databaseButtonsRow}>
-              <ThemedButton
-                title="Test Trip"
-                onPress={handleTestTripOperations}
-                style={styles.smallTestButton}
-                textStyle={styles.smallButtonText}
-              />
-              <ThemedButton
-                title="Load Trips"
-                onPress={handleLoadTrips}
-                type="default"
-                style={styles.smallRefreshButton}
-                textStyle={styles.smallButtonText}
-              />
-              <ThemedButton
-                title="FK Test"
-                onPress={handleTestForeignKeyFix}
-                type="default"
-                style={styles.smallRefreshButton}
-                textStyle={styles.smallButtonText}
-              />
-            </ThemedView>
-            <ThemedView style={styles.databaseButtonsRow}>
-              <ThemedButton
-                title="Ensure User"
-                onPress={handleEnsureDefaultUser}
-                type="default"
-                style={styles.smallRefreshButton}
-                textStyle={styles.smallButtonText}
-              />
-              <ThemedButton
-                title="Full Validation"
-                onPress={handleComprehensiveValidation}
-                type="default"
-                style={styles.smallTestButton}
-                textStyle={styles.smallButtonText}
-              />
-            </ThemedView>
-          </ThemedView>
-        </ThemedView>
-
         {/* Location Services Testing Section (Development Only) */}
         <ThemedView style={styles.databaseContainer}>
           <ThemedText type="subtitle" style={styles.databaseTitle}>
@@ -402,13 +180,6 @@ export const HomeScreen: React.FC = () => {
                 title="Location Demo"
                 onPress={() => router.push("/location-services" as any)}
                 style={styles.smallTestButton}
-                textStyle={styles.smallButtonText}
-              />
-              <ThemedButton
-                title="Fix Location DB"
-                onPress={handleLocationDatabaseFix}
-                type="default"
-                style={styles.smallRefreshButton}
                 textStyle={styles.smallButtonText}
               />
             </ThemedView>

@@ -23,6 +23,8 @@
       "permissions": [
         "POST_NOTIFICATIONS",
         "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "ACCESS_COARSE_LOCATION",
         "INTERNET"
       ],
       "edgeToEdgeEnabled": true,
@@ -44,6 +46,17 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "This app needs access to location when open and in the background for safety tracking during trips.",
+          "locationAlwaysPermission": "This app needs access to location in the background for safety tracking during trips.",
+          "locationWhenInUsePermission": "This app needs access to location for safety tracking during trips.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       "expo-web-browser",

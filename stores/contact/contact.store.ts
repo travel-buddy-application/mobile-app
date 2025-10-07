@@ -30,6 +30,7 @@ interface ContactStoreState {
   clearSelectedContacts: () => void;
   clearAllContacts: () => Promise<void>;
   getContactById: (id: string) => Contact | undefined;
+  loadPushTokensFromSecureStore: () => Promise<void>;
   syncContactKeys: () => Promise<void>;
   clearError: () => void;
   setShowAddForm: (show: boolean) => void;
@@ -366,6 +367,57 @@ export const useContactStore = create<ContactStoreState>()(
         // Get contact by ID
         getContactById: (id: string) => {
           return get().contacts.find((contact) => contact.id === id);
+        }, // Load push tokens from SecureStore and update contacts
+        loadPushTokensFromSecureStore: async () => {
+          set({ isLoading: true, error: null });
+
+          try {
+            const { contacts } = get();
+            let updatedContacts = [...contacts];
+            let hasUpdates = false;
+
+            // Load push tokens from SecureStore for each contact
+            for (let i = 0; i < updatedContacts.length; i++) {
+              const contact = updatedContacts[i];
+              try {
+                const token = await SecureStore.getItemAsync(
+                  `contact_token_${contact.id}`
+                );
+                if (token && token !== contact.pushToken) {
+                  updatedContacts[i] = {
+                    ...contact,
+                    pushToken: token,
+                  };
+                  hasUpdates = true;
+                  console.log(
+                    `🔄 Loaded push token for contact ${contact.displayName}`
+                  );
+                }
+              } catch (error) {
+                console.warn(
+                  `⚠️ Failed to load push token for contact ${contact.id}:`,
+                  error
+                );
+              }
+            }
+
+            if (hasUpdates) {
+              set({ contacts: updatedContacts, isLoading: false });
+              console.log("✅ Push tokens loaded from SecureStore");
+            } else {
+              set({ isLoading: false });
+            }
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : "Failed to load push tokens";
+            set({
+              error: errorMessage,
+              isLoading: false,
+            });
+            throw error;
+          }
         },
 
         // Sync contact encryption keys

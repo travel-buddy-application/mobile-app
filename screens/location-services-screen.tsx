@@ -5,6 +5,7 @@ import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { LocationIntegrationService } from "@/services/location/location-integration.service";
+import { PeriodicLocationSharingService } from "@/services/location/periodic-location-sharing.service";
 import { TripLocationIntegrationService } from "@/services/location/trip-location-integration.service";
 import { useContactStore } from "@/stores/contact/contact.store";
 import { useLocationStore } from "@/stores/location/location.store";
@@ -144,11 +145,10 @@ export default function LocationServicesScreen() {
       console.error("Failed to share message:", error);
     }
   };
-
   const openInMaps = async (url: string) => {
     try {
       await Linking.openURL(url);
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Could not open Google Maps");
     }
   };
@@ -233,6 +233,53 @@ export default function LocationServicesScreen() {
       Alert.alert("Error", `Failed to send emergency alert: ${error}`);
     }
   };
+  // Removed manual location FCM function - now handled automatically every 1 minute during active trips
+  const handleSendEmergencyFCM = async () => {
+    if (contactStore.contacts.length === 0) {
+      Alert.alert(
+        "No Emergency Contacts",
+        "Please add emergency contacts first in the Contacts tab to send emergency alerts."
+      );
+      return;
+    }
+
+    if (!locationStore.currentLocation || !tripStatus.hasActiveTrip) {
+      Alert.alert(
+        "Cannot Send Emergency Alert",
+        "No active trip or current location available."
+      );
+      return;
+    }
+
+    if (!tripStore.activeTrip) {
+      Alert.alert("Error", "No active trip found");
+      return;
+    }
+
+    try {
+      // Use the new manual emergency alert service
+      const result =
+        await PeriodicLocationSharingService.sendManualEmergencyAlert(
+          tripStore.activeTrip,
+          locationStore.currentLocation,
+          "🚨 EMERGENCY: I need immediate help! This is my current location."
+        );
+
+      if (result.success) {
+        Alert.alert(
+          "🚨 Emergency Alerts Sent!",
+          `Emergency alerts sent to ${result.sentCount}/${result.totalContacts} emergency contacts via push notification.`
+        );
+      } else {
+        Alert.alert(
+          "No Emergency Contacts",
+          "No contacts have push notifications enabled for emergency alerts."
+        );
+      }
+    } catch (error) {
+      Alert.alert("Error", `Failed to send emergency alerts: ${error}`);
+    }
+  };
 
   return (
     <ThemedView style={styles.container}>
@@ -301,6 +348,16 @@ export default function LocationServicesScreen() {
           <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
             Trip Management
           </ThemedText>
+          {!tripStatus.hasActiveTrip && (
+            <ThemedText
+              style={[styles.statusText, { marginBottom: 12, fontSize: 12 }]}
+            >
+              Starting a trip will automatically:
+              {"\n"}• Send trip started notification to emergency contacts
+              {"\n"}• Begin location tracking every 10 seconds
+              {"\n"}• Share location via push notifications every 1 minute
+            </ThemedText>
+          )}
           <ThemedButton
             title={
               tripStatus.hasActiveTrip
@@ -434,6 +491,55 @@ export default function LocationServicesScreen() {
               !tripStatus.hasActiveTrip ||
               !locationStore.currentLocation ||
               contactStore.contacts.length === 0
+            }
+          />
+        </View>
+        {/* FCM Push Notifications */}
+        <View style={styles.card}>
+          <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
+            🔔 FCM Push Notifications
+          </ThemedText>
+          <ThemedText style={styles.statusText}>
+            FCM Contacts:
+            {contactStore.contacts.filter((c) => c.pushToken).length} with push
+            tokens
+          </ThemedText>
+          <ThemedText
+            style={[
+              styles.statusText,
+              {
+                marginBottom: 12,
+                fontStyle: "normal",
+                color: tripStore.isPeriodicSharingActive()
+                  ? "#4CAF50"
+                  : "#757575",
+              },
+            ]}
+          >
+            📍 Automatic Location Sharing:
+            {tripStore.isPeriodicSharingActive()
+              ? "Active (every 1 minute)"
+              : "Inactive"}
+          </ThemedText>
+          <ThemedText
+            style={[styles.statusText, { marginBottom: 16, fontSize: 12 }]}
+          >
+            Location updates are automatically sent to emergency contacts every
+            minute during active trips.
+          </ThemedText>
+          <ThemedButton
+            title="🚨 Send Emergency Alert (Manual)"
+            onPress={handleSendEmergencyFCM}
+            style={[styles.button, styles.emergencyButton]}
+            type="delete"
+            disabled={
+              !tripStatus.hasActiveTrip ||
+              !locationStore.currentLocation ||
+              contactStore.contacts.filter(
+                (c) =>
+                  c.pushToken &&
+                  (c.sharingPolicy === "all" || c.sharingPolicy === "alerts")
+              ).length === 0
             }
           />
         </View>
