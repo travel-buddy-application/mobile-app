@@ -2,6 +2,7 @@
 // Handles automatic location sharing via push notifications during active trips
 
 import { sendPushNotification } from "@/services/notifications.service";
+import { useAuthStore } from "@/stores/auth/auth.store";
 import { useContactStore } from "@/stores/contact/contact.store";
 import { useLocationStore } from "@/stores/location/location.store";
 import { LocationSample, Trip } from "@/types/trip";
@@ -90,6 +91,10 @@ export class PeriodicLocationSharingService {
       return;
     }
 
+    // Get the current user's name from auth store
+    const authStore = useAuthStore.getState();
+    const userName = authStore.user?.name || "Travel Buddy User";
+
     console.log(
       `📤 Sending trip started notification to ${eligibleContacts.length} contacts`
     );
@@ -99,14 +104,13 @@ export class PeriodicLocationSharingService {
         await sendPushNotification({
           token: contact.pushToken!,
           title: `🚀 Trip Started - ${trip.title || "Safety Trip"}`,
-          body: `${
-            contact.displayName || "User"
-          } has started a safety trip. You will receive location updates every minute.`,
+          body: `${userName} has started a safety trip. You will receive location updates every minute.`,
           rawData: {
             type: "trip_started",
             tripId: trip.id,
             contactId: contact.id,
-            userId: "current-user",
+            userId: authStore.user?.id || "current-user",
+            userName: userName,
             tripTitle: trip.title || "Safety Trip",
             timestamp: new Date().toISOString(),
           },
@@ -158,10 +162,13 @@ export class PeriodicLocationSharingService {
             location.accuracy
           )}m`,
           rawData: {
-            type: "periodic_location_update",
+            type: "location_update",
             tripId: trip.id,
             contactId: contact.id,
             userId: "current-user",
+            latitude: location.lat.toString(),
+            longitude: location.lng.toString(),
+            locationName: trip.title || "Safety Trip",
             mapsUrl: googleMapsUrl,
             coordinates: `${location.lat},${location.lng}`,
             accuracy: location.accuracy.toString(),
@@ -270,10 +277,13 @@ export class PeriodicLocationSharingService {
           title: `🚨 EMERGENCY ALERT - ${trip.title || "Safety Trip"}`,
           body: `URGENT: Help needed immediately! This is an emergency location alert. Tap to view location and assist.`,
           rawData: {
-            type: "manual_emergency",
+            type: "location_update",
             tripId: trip.id,
             contactId: contact.id,
             userId: "current-user",
+            latitude: location.lat.toString(),
+            longitude: location.lng.toString(),
+            locationName: `🚨 EMERGENCY - ${trip.title || "Safety Trip"}`,
             mapsUrl: googleMapsUrl,
             coordinates: `${location.lat},${location.lng}`,
             accuracy: location.accuracy.toString(),
