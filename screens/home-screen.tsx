@@ -2,22 +2,25 @@ import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { PeriodicLocationSharingService } from "@/services/location/periodic-location-sharing.service";
+import { TripLocationIntegrationService } from "@/services/location/trip-location-integration.service";
 import {
   useAuthStore,
   useContactStore,
+  useLocationStore,
   useTripSelectors,
   useTripStore,
 } from "@/stores";
-import { router } from "expo-router";
 import React from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { Alert, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export const HomeScreen: React.FC = () => {
   const { user } = useAuthStore();
-  const { activeTrip, startTrip } = useTripStore();
+  const { activeTrip, fetchTrips } = useTripStore();
   const { trips, completedTrips } = useTripSelectors();
   const { contacts } = useContactStore();
+  const locationStore = useLocationStore();
 
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");
@@ -27,23 +30,190 @@ export const HomeScreen: React.FC = () => {
 
   const handleStartTrip = async () => {
     try {
-      await startTrip({
-        title: "Safety Trip",
+      // Check for emergency contacts first
+      const contactIds = contacts.map((contact) => contact.id);
+      console.log("🔍 Safe trip - checking contact IDs:", contactIds);
+      console.log("🔍 Available contacts:", contacts.length);
+
+      if (contactIds.length === 0) {
+        Alert.alert(
+          "Emergency Contacts Required",
+          "You need at least one emergency contact to start a safe trip. Please add emergency contacts in the Contacts tab first.",
+          [{ text: "Got It" }]
+        );
+        return;
+      }
+
+      // Check location permissions before starting
+      const hasLocationPermission =
+        await TripLocationIntegrationService.ensureLocationPermissions();
+      if (!hasLocationPermission) {
+        Alert.alert(
+          "Location Permission Required",
+          "Location access is required for safe trips. Please grant location permission to continue.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+
+      await startTripWithContacts(contactIds);
+    } catch (error) {
+      Alert.alert("Error", `Failed to start safe trip: ${error}`);
+    }
+  };
+
+  const startTripWithContacts = async (contactIds: string[]) => {
+    try {
+      // Get current location first
+      let currentLocation;
+      try {
+        currentLocation = await locationStore.getCurrentPosition();
+        if (!currentLocation) {
+          throw new Error("No location available");
+        }
+      } catch (error) {
+        console.warn(
+          "⚠️ Could not get current location, using default coordinates:",
+          error
+        );
+        currentLocation = {
+          lat: 40.7128,
+          lng: -74.006,
+          accuracy: 100,
+          timestamp: Date.now(),
+        };
+      }
+
+      await TripLocationIntegrationService.startTripWithLocationTracking({
+        title: "Safe Trip",
         origin: {
-          lat: 0, // This will be updated with real location
-          lng: 0,
+          lat: currentLocation.lat,
+          lng: currentLocation.lng,
           address: "Current Location",
         },
         destination: {
-          lat: 0, // Will be from user input
-          lng: 0,
+          lat: currentLocation.lat + 0.01, // Slightly offset for destination
+          lng: currentLocation.lng + 0.01,
           address: "Destination",
         },
-        contacts: contacts.map((contact) => contact.id) || [],
+        contacts: contactIds, // Use actual contact IDs from contact store
       });
+
+      // Ensure location tracking is active after trip starts
+      try {
+        await locationStore.getCurrentPosition();
+        console.log("✅ Location tracking confirmed active after trip start");
+      } catch (locationError) {
+        console.warn(
+          "⚠️ Location tracking may not be fully active:",
+          locationError
+        );
+      }
+
+      Alert.alert(
+        "Safe Trip Started!",
+        `Your safe trip is now active with ${
+          contactIds.length
+        } emergency contact${
+          contactIds.length > 1 ? "s" : ""
+        } monitoring your journey.`
+      );
     } catch (error) {
-      console.error("Failed to start trip:", error);
+      Alert.alert("Error", `Failed to start trip: ${error}`);
     }
+  };
+
+  const handleEndTrip = async () => {
+    try {
+      await TripLocationIntegrationService.endTripAndStopTracking();
+      Alert.alert("Success", "Safe trip ended and location tracking stopped!");
+    } catch (error) {
+      Alert.alert("Error", `Failed to end trip: ${error}`);
+    }
+  };
+
+  const handleEmergencySOS = async () => {
+    if (!activeTrip) {
+      Alert.alert("Cannot Send SOS", "No active trip found.");
+      return;
+    }
+
+    // Try to get current location if not available
+    let currentLocation = locationStore.currentLocation;
+    if (!currentLocation) {
+      try {
+        currentLocation = await locationStore.getCurrentPosition();
+        if (!currentLocation) {
+          Alert.alert(
+            "Cannot Send SOS",
+            "Unable to get current location. Please try again."
+          );
+          return;
+        }
+      } catch {
+        Alert.alert(
+          "Cannot Send SOS",
+          "Unable to get current location. Please try again."
+        );
+        return;
+      }
+    }
+
+    Alert.alert(
+      "🆘 EMERGENCY SOS",
+      "This will immediately alert all your emergency contacts via push notification and email. Continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "SEND SOS",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Refresh trip data
+              await fetchTrips();
+              const currentActiveTrip = activeTrip;
+
+              if (!currentActiveTrip) {
+                Alert.alert("Error", "No active trip found");
+                return;
+              }
+
+              // Send push notifications
+              const pushResult =
+                await PeriodicLocationSharingService.sendManualEmergencyAlert(
+                  currentActiveTrip,
+                  currentLocation,
+                  "🆘 EMERGENCY SOS: I need immediate help!"
+                );
+
+              // Send email notifications
+              const emailResult =
+                await TripLocationIntegrationService.sendEmergencyAlert(
+                  "Emergency Contact",
+                  "🆘 EMERGENCY SOS: I need immediate help! This is my current location."
+                );
+
+              // Show results
+              let message = "SOS sent:\n";
+              if (pushResult.success) {
+                message += `✅ Push: ${pushResult.sentCount} contacts\n`;
+              }
+              if (emailResult.success) {
+                message += `✅ Email: ${emailResult.emailsSent} contacts`;
+              }
+
+              if (!pushResult.success && !emailResult.success) {
+                message = "❌ Failed to send SOS alerts. Please try again.";
+              }
+
+              Alert.alert("🆘 SOS Alert Sent", message);
+            } catch (error) {
+              Alert.alert("Error", `Failed to send SOS: ${error}`);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -99,8 +269,18 @@ export const HomeScreen: React.FC = () => {
               </ThemedText>
               <ThemedButton
                 title="🆘 Emergency SOS"
+                onPress={handleEmergencySOS}
                 type="delete"
                 style={styles.sosButton}
+                textStyle={styles.sosButtonText}
+              />
+              <ThemedButton
+                title="🛑 End Safe Trip"
+                onPress={handleEndTrip}
+                style={[
+                  styles.sosButton,
+                  { backgroundColor: "#6B7280", marginTop: 10 },
+                ]}
                 textStyle={styles.sosButtonText}
               />
             </ThemedView>
@@ -112,11 +292,37 @@ export const HomeScreen: React.FC = () => {
               <ThemedText style={styles.startTripSubtitle}>
                 Start a protected trip to enable safety monitoring
               </ThemedText>
+              {contacts.length === 0 && (
+                <ThemedText
+                  style={[
+                    styles.startTripSubtitle,
+                    { color: "#F44336", marginBottom: 12, fontSize: 12 },
+                  ]}
+                >
+                  ⚠️ At least one emergency contact is required to start a safe
+                  trip
+                </ThemedText>
+              )}
+              {contacts.length > 0 && (
+                <ThemedText
+                  style={[
+                    styles.startTripSubtitle,
+                    { marginBottom: 12, fontSize: 12 },
+                  ]}
+                >
+                  Starting a safe trip will automatically:
+                  {"\n"}• Notify your emergency contacts
+                  {"\n"}• Begin location tracking every 10 seconds
+                  {"\n"}• Share location updates every 1 minute
+                  {"\n"}• Enable emergency SOS functionality
+                </ThemedText>
+              )}
               <ThemedButton
                 title="🛡️ Start Safe Trip"
                 onPress={handleStartTrip}
                 style={styles.startTripButton}
                 textStyle={styles.startTripButtonText}
+                disabled={contacts.length === 0}
               />
             </ThemedView>
           )}
@@ -158,30 +364,6 @@ export const HomeScreen: React.FC = () => {
                 Smart SOS Alerts
               </ThemedText>
               <ThemedText style={styles.comingSoon}>Active</ThemedText>
-            </ThemedView>
-          </ThemedView>
-        </ThemedView>
-        {/* Location Services Testing Section (Development Only) */}
-        <ThemedView style={styles.databaseContainer}>
-          <ThemedText type="subtitle" style={styles.databaseTitle}>
-            📍 Location Services Testing (Dev Only)
-          </ThemedText>
-          <ThemedView
-            style={[
-              styles.databaseCard,
-              { backgroundColor: cardBackgroundColor, borderColor },
-            ]}
-          >
-            <ThemedText style={styles.databaseInfo}>
-              Section 3A: Google Maps Integration & Location Sharing
-            </ThemedText>
-            <ThemedView style={styles.databaseButtonsRow}>
-              <ThemedButton
-                title="Location Demo"
-                onPress={() => router.push("/location-services" as any)}
-                style={styles.smallTestButton}
-                textStyle={styles.smallButtonText}
-              />
             </ThemedView>
           </ThemedView>
         </ThemedView>
@@ -316,79 +498,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.6,
     fontStyle: "italic",
-  },
-  // Database Testing Styles (Development)
-  databaseContainer: {
-    marginBottom: 20,
-  },
-  databaseTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-  databaseCard: {
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  databaseInfo: {
-    fontSize: 12,
-    opacity: 0.7,
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  databaseButtons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 10,
-    backgroundColor: "transparent",
-  },
-  databaseButtonsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 8,
-    backgroundColor: "transparent",
-    marginBottom: 8,
-  },
-  testButton: {
-    flex: 1,
-    backgroundColor: "#4CAF50",
-  },
-  refreshButton: {
-    flex: 1,
-    backgroundColor: "#2196F3",
-  },
-  fixButton: {
-    flex: 1,
-    backgroundColor: "#2196F3",
-    minHeight: 42,
-    borderRadius: 8,
-  },
-  cleanButton: {
-    flex: 1,
-  },
-  smallTestButton: {
-    flex: 1,
-    backgroundColor: "#4CAF50",
-    minHeight: 42,
-    paddingHorizontal: 6,
-    borderRadius: 8,
-  },
-  smallRefreshButton: {
-    flex: 1,
-    backgroundColor: "#2196F3",
-    minHeight: 42,
-    paddingHorizontal: 6,
-    borderRadius: 8,
-  },
-  smallCleanButton: {
-    flex: 1,
-    minHeight: 42,
-    paddingHorizontal: 6,
-    borderRadius: 8,
-  },
-  smallButtonText: {
-    fontSize: 11,
-    fontWeight: "600",
   },
 });
