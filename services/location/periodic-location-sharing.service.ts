@@ -158,7 +158,7 @@ export class PeriodicLocationSharingService {
             location.accuracy
           )}m`,
           rawData: {
-            action: "open_maps",
+            type: "open_maps",
             tripId: trip.id,
             contactId: contact.id,
             userId: "current-user",
@@ -267,7 +267,7 @@ export class PeriodicLocationSharingService {
           title: `🚨 EMERGENCY ALERT - ${trip.title || "Safety Trip"}`,
           body: `URGENT: Help needed immediately! This is an emergency location alert. Tap to view location and assist.`,
           rawData: {
-            action: "open_maps",
+            type: "open_maps",
             tripId: trip.id,
             contactId: contact.id,
             userId: "current-user",

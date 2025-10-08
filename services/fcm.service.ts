@@ -24,15 +24,18 @@ export interface FCMNotificationData {
     | "location_share"
     | "trip_update"
     | "accept_contact_request"
-    | "location_update";
-
-  // Modern action-based notifications (preferred)
-  action?: "open_maps" | string;
+    | "location_update"
+    | "open_maps";
 
   // Common fields
   tripId?: string;
   contactId?: string;
   userId?: string;
+
+  // Contact request fields
+  senderEmail?: string;
+  senderFcmToken?: string;
+  senderPushToken?: string;
 
   // Location data for opening in Google Maps
   latitude?: string;
@@ -156,46 +159,57 @@ export class FCMService {
   private async handleForegroundMessage(
     remoteMessage: FirebaseMessagingTypes.RemoteMessage
   ): Promise<void> {
-    const { notification, data } = remoteMessage;
+    const { data, notification } = remoteMessage;
+    console.log("Processing foreground message:", remoteMessage);
     const notificationData = data as FCMNotificationData;
 
-    if (!notification) return;
+    // Handle other notification types
+    switch (notificationData.type) {
+      case "accept_contact_request":
+        if (notificationData.senderEmail) {
+          updateContactByEmail(notificationData.senderEmail, {
+            status: "accepted",
+            pushToken: notificationData.senderFcmToken,
+          });
+        }
+        break;
+    }
 
     try {
-      // Show local notification using expo-notifications
+      // Show local notification using expo-notifications for non-location notifications
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: notification.title || "Travel Buddy",
-          body: notification.body || "New notification",
+          title: notification?.title || "Travel Buddy",
+          body: notification?.body || "New notification",
           data: data as Record<string, string>,
           sound: true,
         },
         trigger: null, // Show immediately
       });
 
-      // Show alert for emergency notifications
-      if (data?.type === "emergency") {
+      // Handle action-based notifications (modern approach)
+      if (notificationData.type === "open_maps") {
         Alert.alert(
-          "🚨 Emergency Alert",
-          notification.body || "Emergency notification received",
+          "🗺️ Open Location",
+          notification?.body || "Open location in maps?",
           [
-            { text: "Dismiss", style: "cancel" },
+            { text: "Cancel", style: "cancel" },
             {
-              text: "View Details",
-              onPress: () => this.handleNotificationPress(remoteMessage),
+              text: "Open Maps",
+              onPress: async () => {
+                if (notificationData.lat && notificationData.lng) {
+                  await this.openMaps(
+                    notificationData.lat,
+                    notificationData.lng,
+                    notificationData.label
+                  );
+                } else {
+                  Alert.alert("Error", "Location data is missing or invalid.");
+                }
+              },
             },
           ]
         );
-      }
-      switch (notificationData.type) {
-        case "accept_contact_request":
-          if (notificationData.senderEmail) {
-            updateContactByEmail(notificationData.senderEmail, {
-              status: "accepted",
-              pushToken: notificationData.senderFcmToken,
-            });
-          }
-          break;
       }
     } catch (error) {
       console.error("❌ Error handling foreground message:", error);
@@ -226,6 +240,7 @@ export class FCMService {
   ): void {
     const { data } = remoteMessage;
     const notificationData = data as FCMNotificationData;
+    console.log("Handling notification press with data:", notificationData);
 
     try {
       // Handle action-based notifications (modern approach)
@@ -334,6 +349,14 @@ export class FCMService {
   ): Promise<void> {
     const { googleWeb, androidGeo, androidNav, iosGmaps, iosApple } =
       this.buildMapsUrls(lat, lng, label);
+
+    console.log("🌐 Maps URLs:", {
+      googleWeb,
+      androidGeo,
+      androidNav,
+      iosGmaps,
+      iosApple,
+    });
 
     try {
       if (Platform.OS === "android") {
