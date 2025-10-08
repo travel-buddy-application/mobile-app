@@ -18,20 +18,32 @@ import { router } from "expo-router";
 import { Alert, Linking, Platform } from "react-native";
 
 export interface FCMNotificationData {
+  // Legacy type-based notifications
   type?:
     | "emergency"
     | "location_share"
     | "trip_update"
     | "accept_contact_request"
     | "location_update";
+
+  // Modern action-based notifications (preferred)
+  action?: "open_maps" | string;
+
+  // Common fields
   tripId?: string;
   contactId?: string;
   userId?: string;
-  action?: string;
+
   // Location data for opening in Google Maps
   latitude?: string;
   longitude?: string;
   locationName?: string;
+
+  // Action-based location fields (cleaner naming)
+  lat?: string;
+  lng?: string;
+  label?: string;
+
   [key: string]: string | undefined;
 }
 const { updateContactByEmail } = useContactStore.getState();
@@ -209,7 +221,6 @@ export class FCMService {
     // Handle background processing if needed
     // This runs when app is in background or killed
   }
-
   private handleNotificationPress(
     remoteMessage: FirebaseMessagingTypes.RemoteMessage
   ): void {
@@ -217,6 +228,21 @@ export class FCMService {
     const notificationData = data as FCMNotificationData;
 
     try {
+      // Handle action-based notifications (modern approach)
+      if (
+        notificationData.action === "open_maps" &&
+        notificationData.lat &&
+        notificationData.lng
+      ) {
+        this.openMaps(
+          notificationData.lat,
+          notificationData.lng,
+          notificationData.label
+        );
+        return;
+      }
+
+      // Handle type-based notifications (legacy approach)
       switch (notificationData.type) {
         case "emergency":
           this.navigateToEmergency(notificationData);
@@ -276,6 +302,67 @@ export class FCMService {
   private navigateToContactRequest(data: FCMNotificationData): void {
     router.push("/(tabs)/contacts");
   }
+  private buildMapsUrls(lat: string, lng: string, label?: string) {
+    // Universal web link (works everywhere)
+    const googleWeb = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}${
+      label ? `&query_place_id=${encodeURIComponent(label)}` : ""
+    }`;
+
+    // Android intents (prefer the app)
+    const androidGeo = `geo:${lat},${lng}?q=${lat},${lng}${
+      label ? `(${encodeURIComponent(label)})` : ""
+    }`;
+    const androidNav = `google.navigation:q=${lat},${lng}`;
+
+    // iOS Google Maps URL scheme
+    const iosGmaps = `comgooglemaps://?q=${lat},${lng}${
+      label ? `(${encodeURIComponent(label)})` : ""
+    }&zoom=16`;
+
+    // iOS Apple Maps fallback
+    const iosApple = `http://maps.apple.com/?ll=${lat},${lng}${
+      label ? `&q=${encodeURIComponent(label)}` : ""
+    }`;
+
+    return { googleWeb, androidGeo, androidNav, iosGmaps, iosApple };
+  }
+
+  private async openMaps(
+    lat: string,
+    lng: string,
+    label?: string
+  ): Promise<void> {
+    const { googleWeb, androidGeo, androidNav, iosGmaps, iosApple } =
+      this.buildMapsUrls(lat, lng, label);
+
+    try {
+      if (Platform.OS === "android") {
+        console.log("🌐 Platform is Android");
+        // Prefer navigation if you want turn-by-turn, then geo, then web
+        const candidates = [androidNav, androidGeo, googleWeb];
+        for (const url of candidates) {
+          console.log(`🔗 Trying URL: ${url}`);
+          if (await Linking.canOpenURL(url)) {
+            console.log(`🗺️ Opening maps with: ${url}`);
+            return await Linking.openURL(url);
+          }
+        }
+      } else {
+        // iOS: Try Google Maps app, then Apple Maps, then web
+        const candidates = [iosGmaps, iosApple, googleWeb];
+        for (const url of candidates) {
+          if (await Linking.canOpenURL(url)) {
+            console.log(`🗺️ Opening maps with: ${url}`);
+            return await Linking.openURL(url);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error opening maps:", error);
+      // Fallback to web URL
+      await Linking.openURL(googleWeb);
+    }
+  }
 
   private async openLocationInGoogleMaps(
     data: FCMNotificationData
@@ -300,41 +387,8 @@ export class FCMService {
         throw new Error("Invalid coordinates");
       }
 
-      // Create Google Maps URL with coordinates
-      let googleMapsUrl: string;
-
-      if (Platform.OS === "ios") {
-        // iOS: Try Google Maps app first, fall back to Apple Maps
-        googleMapsUrl = `comgooglemaps://?center=${lat},${lng}&zoom=15&views=traffic`;
-
-        const canOpenGoogleMaps = await Linking.canOpenURL(googleMapsUrl);
-        if (!canOpenGoogleMaps) {
-          // Fall back to Apple Maps if Google Maps not installed
-          googleMapsUrl = `http://maps.apple.com/?ll=${lat},${lng}&z=15`;
-        }
-      } else {
-        // Android: Use Google Maps with geo: URI or web fallback
-        googleMapsUrl = `geo:${lat},${lng}?z=15`;
-
-        const canOpenGeoUri = await Linking.canOpenURL(googleMapsUrl);
-        if (!canOpenGeoUri) {
-          // Fall back to web Google Maps
-          googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}&z=15`;
-        }
-      }
-
-      // Add location name as query parameter if available
-      if (locationName) {
-        const encodedName = encodeURIComponent(locationName);
-        if (googleMapsUrl.includes("google.com")) {
-          googleMapsUrl += `&query=${encodedName}`;
-        }
-      }
-
       console.log(`🗺️ Opening location in maps: ${lat}, ${lng}`);
-      console.log(`🔗 Maps URL: ${googleMapsUrl}`);
-
-      await Linking.openURL(googleMapsUrl);
+      await this.openMaps(latitude, longitude, locationName);
     } catch (error) {
       console.error("❌ Error opening location in Google Maps:", error);
 
@@ -348,7 +402,6 @@ export class FCMService {
           {
             text: "Copy Coordinates",
             onPress: () => {
-              // You could implement clipboard functionality here if needed
               console.log(`Coordinates: ${latitude}, ${longitude}`);
             },
           },

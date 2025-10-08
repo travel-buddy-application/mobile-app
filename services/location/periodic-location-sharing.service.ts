@@ -6,7 +6,6 @@ import { useAuthStore } from "@/stores/auth/auth.store";
 import { useContactStore } from "@/stores/contact/contact.store";
 import { useLocationStore } from "@/stores/location/location.store";
 import { LocationSample, Trip } from "@/types/trip";
-import { LocationIntegrationService } from "./location-integration.service";
 
 export class PeriodicLocationSharingService {
   private static instance: PeriodicLocationSharingService;
@@ -146,10 +145,7 @@ export class PeriodicLocationSharingService {
       console.warn("⚠️ No eligible contacts for periodic location sharing");
       return;
     }
-
     const location = locationStore.currentLocation;
-    const googleMapsUrl =
-      LocationIntegrationService.generateGoogleMapsUrl(location);
 
     console.log(`📍 Sharing location with ${eligibleContacts.length} contacts`);
 
@@ -162,18 +158,15 @@ export class PeriodicLocationSharingService {
             location.accuracy
           )}m`,
           rawData: {
-            type: "location_update",
+            action: "open_maps",
             tripId: trip.id,
             contactId: contact.id,
             userId: "current-user",
-            latitude: location.lat.toString(),
-            longitude: location.lng.toString(),
-            locationName: trip.title || "Safety Trip",
-            mapsUrl: googleMapsUrl,
-            coordinates: `${location.lat},${location.lng}`,
+            lat: location.lat.toString(),
+            lng: location.lng.toString(),
+            label: trip.title || "Safety Trip",
             accuracy: location.accuracy.toString(),
             timestamp: new Date(location.timestamp).toISOString(),
-            tripTitle: trip.title || "Safety Trip",
           },
         });
       } catch (error) {
@@ -257,13 +250,10 @@ export class PeriodicLocationSharingService {
     console.log(
       `📊 Emergency alerts: ${emergencyContacts.length} eligible out of ${contactStore.contacts.length} total contacts`
     );
-
     if (emergencyContacts.length === 0) {
       return { success: false, sentCount: 0, totalContacts: 0 };
     }
 
-    const googleMapsUrl =
-      LocationIntegrationService.generateGoogleMapsUrl(location);
     let successCount = 0;
 
     console.log(
@@ -277,19 +267,16 @@ export class PeriodicLocationSharingService {
           title: `🚨 EMERGENCY ALERT - ${trip.title || "Safety Trip"}`,
           body: `URGENT: Help needed immediately! This is an emergency location alert. Tap to view location and assist.`,
           rawData: {
-            type: "location_update",
+            action: "open_maps",
             tripId: trip.id,
             contactId: contact.id,
             userId: "current-user",
-            latitude: location.lat.toString(),
-            longitude: location.lng.toString(),
-            locationName: `🚨 EMERGENCY - ${trip.title || "Safety Trip"}`,
-            mapsUrl: googleMapsUrl,
-            coordinates: `${location.lat},${location.lng}`,
+            lat: location.lat.toString(),
+            lng: location.lng.toString(),
+            label: `🚨 EMERGENCY - ${trip.title || "Safety Trip"}`,
             accuracy: location.accuracy.toString(),
             timestamp: new Date(location.timestamp).toISOString(),
             emergencyMessage: emergencyMessage,
-            tripTitle: trip.title || "Safety Trip",
           },
         });
         successCount++;
