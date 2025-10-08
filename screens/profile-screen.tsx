@@ -167,7 +167,17 @@ export const ProfileScreen: React.FC = () => {
               { backgroundColor: cardBackgroundColor },
             ]}
           >
-            <MaterialIcons name="person" size={48} color={textColor} />
+            <MaterialIcons
+              name="person"
+              size={56}
+              color={textColor}
+              style={{
+                borderColor: borderColor,
+                borderWidth: 1,
+                borderRadius: 40,
+                padding: 8,
+              }}
+            />
           </ThemedView>
           <ThemedText type="title" style={styles.title}>
             Profile

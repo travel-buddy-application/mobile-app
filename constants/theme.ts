@@ -28,7 +28,7 @@ export const Colors = {
     inputBackgroundColor: "#f9f9f9",
     inputBorderColor: "#ddd",
     placeholderTextColor: "#999",
-    cardBorderColor: "#f0f0f0",
+    cardBorderColor: "#565454ff",
   },
   dark: {
     text: "#ECEDEE",
