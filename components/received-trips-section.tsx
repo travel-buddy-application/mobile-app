@@ -4,11 +4,20 @@
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { errorColor } from "@/constants/theme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { supabaseLocationService } from "@/services/supabase/location.service";
 import { useReceivedTripsSelectors } from "@/stores/received-trips/received-trips.store";
+import { MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { Alert, Linking, Platform, StyleSheet } from "react-native";
+import {
+  Alert,
+  Linking,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface ReceivedTripsProps {
   onLocationFetch?: (sessionId: string) => void;
@@ -28,6 +37,7 @@ export const ReceivedTripsSection: React.FC<ReceivedTripsProps> = ({
   // Theme colors
   const cardBackgroundColor = useThemeColor({}, "cardBackgroundColor");
   const borderColor = useThemeColor({}, "cardBorderColor");
+  const backgroundColor = useThemeColor({}, "background");
 
   // Clear expired sessions on component mount
   useEffect(() => {
@@ -197,10 +207,18 @@ export const ReceivedTripsSection: React.FC<ReceivedTripsProps> = ({
     return null;
   }
   return (
-    <ThemedView style={styles.container}>
-      <ThemedView style={styles.headerContainer}>
-        <ThemedView style={styles.titleContainer}>
-          <ThemedView style={styles.titleRow}>
+    <ThemedView
+      style={[
+        styles.container,
+        {
+          backgroundColor: cardBackgroundColor,
+          borderColor: borderColor,
+        },
+      ]}
+    >
+      <View style={styles.headerContainer}>
+        <View style={styles.titleContainer}>
+          <View style={styles.titleRow}>
             <ThemedText type="subtitle" style={styles.title}>
               📱 Received Safety Trips
             </ThemedText>
@@ -209,20 +227,34 @@ export const ReceivedTripsSection: React.FC<ReceivedTripsProps> = ({
                 {recentSessions.length}
               </ThemedText>
             </ThemedView>
-          </ThemedView>
-          <ThemedText style={styles.subtitle}>
-            People who have shared their trip with you
-          </ThemedText>
-        </ThemedView>
-        <ThemedButton
-          title="🗑️ Clear"
+          </View>
+        </View>
+        <TouchableOpacity
           onPress={handleClearAllSessions}
-          style={styles.clearButton}
-          textStyle={styles.clearButtonText}
-        />
-      </ThemedView>
+          style={[
+            styles.clearButton,
+            {
+              backgroundColor: backgroundColor,
+              borderRadius: 6,
+            },
+          ]}
+        >
+          <MaterialIcons name="delete-outline" size={22} color={errorColor} />
+        </TouchableOpacity>
+      </View>
+      <ThemedText style={styles.subtitle}>
+        People who have shared their trip with you
+      </ThemedText>
       <ThemedView
-        style={[styles.sessionsList, { backgroundColor: cardBackgroundColor }]}
+        style={[
+          styles.sessionsList,
+          {
+            backgroundColor: cardBackgroundColor,
+            borderColor: borderColor,
+            borderWidth: 1,
+            borderRadius: 12,
+          },
+        ]}
       >
         {recentSessions.map((session, index) => (
           <ThemedView
@@ -233,51 +265,57 @@ export const ReceivedTripsSection: React.FC<ReceivedTripsProps> = ({
               index === recentSessions.length - 1 && { borderBottomWidth: 0 },
             ]}
           >
-            <ThemedView style={styles.sessionInfo}>
+            {/* Top Row - User Name with Status */}
+            <ThemedView style={styles.topRow}>
               <ThemedText style={styles.sessionTitle}>
-                {session.isActive ? "🟢" : "🔴"}
+                {session.isActive ? "🟢 " : "🔴 "}
                 {session.userName || "Unknown User"}
-              </ThemedText>
-              <ThemedText style={styles.sessionDetails}>
-                {session.tripTitle || "Safety Trip"}
-              </ThemedText>
-              <ThemedText style={styles.sessionTime}>
-                {session.isActive ? "Started" : "Ended"}{" "}
-                {formatTimeAgo(session.receivedAt)}
-                {session.lastLocationFetch && (
-                  <ThemedText style={styles.lastFetch}>
-                    {" • "}Last viewed
-                    {formatTimeAgo(session.lastLocationFetch)}
-                  </ThemedText>
-                )}
               </ThemedText>
             </ThemedView>
 
-            <ThemedButton
-              title={
-                loadingSession === session.sessionId
-                  ? "Loading..."
-                  : "📍 View Location"
-              }
-              onPress={() =>
-                handleFetchLocation(session.sessionId, session.userName)
-              }
-              disabled={loadingSession === session.sessionId}
-              style={[
-                styles.locationButton,
-                {
-                  backgroundColor: session.isActive ? "#2196F3" : "#9E9E9E",
-                  opacity: loadingSession === session.sessionId ? 0.6 : 1,
-                },
-              ]}
-              textStyle={styles.locationButtonText}
-            />
+            {/* Bottom Row - Details and Button */}
+            <ThemedView style={styles.bottomRow}>
+              <ThemedView style={styles.sessionInfo}>
+                <ThemedText style={styles.sessionDetails}>
+                  {session.tripTitle || "Safety Trip"}
+                </ThemedText>
+                <ThemedText style={styles.sessionTime}>
+                  {session.isActive ? "Started" : "Ended"}{" "}
+                  {formatTimeAgo(session.receivedAt)}
+                  {session.lastLocationFetch && (
+                    <ThemedText style={styles.lastFetch}>
+                      {" • "}Last viewed{" "}
+                      {formatTimeAgo(session.lastLocationFetch)}
+                    </ThemedText>
+                  )}
+                </ThemedText>
+              </ThemedView>
+
+              <ThemedButton
+                title={
+                  loadingSession === session.sessionId
+                    ? "Loading..."
+                    : "📍 View Location"
+                }
+                onPress={() =>
+                  handleFetchLocation(session.sessionId, session.userName)
+                }
+                disabled={loadingSession === session.sessionId}
+                style={[
+                  styles.locationButton,
+                  {
+                    backgroundColor: session.isActive ? "#2196F3" : "#9E9E9E",
+                    opacity: loadingSession === session.sessionId ? 0.6 : 1,
+                  },
+                ]}
+                textStyle={styles.locationButtonText}
+              />
+            </ThemedView>
           </ThemedView>
         ))}
       </ThemedView>
       <ThemedText style={styles.helpText}>
-        💡 Tap &quot;View Location&quot; to see their current location in maps •
-        Tap &quot;Clear&quot; to remove all trips
+        💡 Tap &quot;View Location&quot; to see their current locations.
       </ThemedText>
     </ThemedView>
   );
@@ -286,12 +324,16 @@ export const ReceivedTripsSection: React.FC<ReceivedTripsProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginBottom: 30,
+    padding: 15,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   headerContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
     marginBottom: 15,
+    backgroundColor: "transparent",
   },
   titleContainer: {
     flex: 1,
@@ -322,12 +364,10 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     opacity: 0.7,
-    marginBottom: 0,
+    marginBottom: 5,
   },
   clearButton: {
-    backgroundColor: "#FF5722",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    padding: 4,
     borderRadius: 6,
     marginLeft: 10,
   },
@@ -341,14 +381,22 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   sessionItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: "column",
     padding: 15,
     borderBottomWidth: 1,
   },
+  topRow: {
+    width: "100%",
+    marginBottom: 8,
+  },
+  bottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+  },
   sessionInfo: {
     flex: 1,
-    marginRight: 15,
+    marginRight: 10,
   },
   sessionTitle: {
     fontSize: 16,
@@ -374,6 +422,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     minWidth: 120,
+    alignSelf: "flex-end",
   },
   locationButtonText: {
     color: "white",

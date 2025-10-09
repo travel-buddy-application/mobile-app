@@ -54,8 +54,8 @@ export const HomeScreen: React.FC = () => {
         const pendingContacts = contacts.filter(
           (contact) => contact.status === "pending"
         );
-        const blockedContacts = contacts.filter(
-          (contact) => contact.status === "blocked"
+        const declinedContacts = contacts.filter(
+          (contact) => contact.status === "declined"
         );
 
         let message =
@@ -69,10 +69,10 @@ export const HomeScreen: React.FC = () => {
           } to accept your invitation.`;
         }
 
-        if (blockedContacts.length > 0) {
-          message += ` ${blockedContacts.length} contact${
-            blockedContacts.length > 1 ? "s have" : " has"
-          } blocked you.`;
+        if (declinedContacts.length > 0) {
+          message += ` ${declinedContacts.length} contact${
+            declinedContacts.length > 1 ? "s have" : " has"
+          } declined your invitation.`;
         }
 
         message += " Please check your contacts and try again.";
@@ -269,19 +269,43 @@ export const HomeScreen: React.FC = () => {
         </ThemedView>
         {/* Quick Stats */}
         <ThemedView style={styles.statsContainer}>
-          <ThemedView style={styles.statCard}>
+          <ThemedView
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: cardBackgroundColor,
+                borderColor: borderColor,
+              },
+            ]}
+          >
             <ThemedText type="defaultSemiBold" style={styles.statNumber}>
               {completedTrips.length}
             </ThemedText>
             <ThemedText style={styles.statLabel}>Completed Trips</ThemedText>
           </ThemedView>
-          <ThemedView style={styles.statCard}>
+          <ThemedView
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: cardBackgroundColor,
+                borderColor: borderColor,
+              },
+            ]}
+          >
             <ThemedText type="defaultSemiBold" style={styles.statNumber}>
               {trips.length}
             </ThemedText>
             <ThemedText style={styles.statLabel}>Total Trips</ThemedText>
           </ThemedView>
-          <ThemedView style={styles.statCard}>
+          <ThemedView
+            style={[
+              styles.statCard,
+              {
+                backgroundColor: cardBackgroundColor,
+                borderColor: borderColor,
+              },
+            ]}
+          >
             <ThemedText type="defaultSemiBold" style={styles.statNumber}>
               {contacts.length}
             </ThemedText>
@@ -360,7 +384,6 @@ export const HomeScreen: React.FC = () => {
                   Starting a safe trip will automatically:
                   {"\n"}• Notify your emergency contacts
                   {"\n"}• Begin location tracking every 10 seconds
-                  {"\n"}• Share location updates every 1 minute
                   {"\n"}• Enable emergency SOS functionality
                 </ThemedText>
               )}
@@ -445,10 +468,12 @@ const styles = StyleSheet.create({
   },
   statCard: {
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     flex: 1,
     padding: 12,
     borderRadius: 12,
+    borderWidth: 1,
+    minHeight: 70,
   },
   statNumber: {
     fontSize: 22,

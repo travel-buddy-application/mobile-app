@@ -7,6 +7,8 @@ import { Platform } from 'react-native';
 
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
+export const successColor = '#28a745';
+export const errorColor = '#dc3545';
 
 export const Colors = {
   light: {
@@ -18,9 +20,9 @@ export const Colors = {
     tabIconSelected: tintColorLight,
     primaryButtonBackground: tintColorLight,
     primaryButtonText: "#fff",
-    successButtonBackground: "#28a745",
+    successButtonBackground: successColor,
     successButtonText: "#fff",
-    deleteButtonBackground: "#dc3545",
+    deleteButtonBackground: errorColor,
     deleteButtonText: "#fff",
 
     // Emergency Contacts
@@ -39,9 +41,9 @@ export const Colors = {
     tabIconSelected: tintColorDark,
     primaryButtonBackground: "#757575",
     primaryButtonText: "#ffffff",
-    successButtonBackground: "#28a745",
+    successButtonBackground: successColor,
     successButtonText: "#fff",
-    deleteButtonBackground: "#dc3545",
+    deleteButtonBackground: errorColor,
     deleteButtonText: "#fff",
 
     // Emergency Contacts

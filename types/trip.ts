@@ -132,7 +132,7 @@ export interface Contact {
   createdAt: string;
   updatedAt: string;
   email: string;
-  status: "pending" | "accepted" | "blocked";
+  status: "pending" | "accepted" | "declined";
 }
 
 export interface ContactCreateInput {
