@@ -242,96 +242,38 @@ export class TripDatabaseService {
       throw new Error("Failed to delete trip");
     }
   }
-
   /**
-   * Add location sample to a trip
-   */ static async addLocationSample(location: LocationSample): Promise<void> {
-    const db = await this.databaseService.getConnection();
-
-    try {
-      const query = `
-        INSERT INTO location_samples (
-          id, trip_id, latitude, longitude, accuracy, speed, timestamp
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `;
-      await db.runAsync(
-        query,
-        location.id,
-        location.tripId,
-        location.lat,
-        location.lng,
-        location.accuracy,
-        location.speed || null,
-        location.timestamp
-      );
-
-      console.log("✅ Location sample added:", location.id);
-    } catch (error) {
-      console.error("❌ Error adding location sample:", error);
-      throw new Error("Failed to add location sample");
-    }
+   * DEPRECATED: Local location sampling removed
+   * Locations are now saved directly to Supabase instead of local SQLite
+   */
+  static async addLocationSample(location: LocationSample): Promise<void> {
+    console.warn(
+      "⚠️ addLocationSample is deprecated - locations are now saved to Supabase"
+    );
+    // Method kept for backward compatibility but does nothing
+    return;
   }
-
   /**
-   * Get location history for a trip
+   * DEPRECATED: Local location history removed
+   * Location history is now fetched from Supabase instead of local SQLite
    */ static async getLocationHistory(
     tripId: string
   ): Promise<LocationSample[]> {
-    const db = await this.databaseService.getConnection();
-
-    try {
-      const query = `
-        SELECT * FROM location_samples 
-        WHERE trip_id = ? 
-        ORDER BY timestamp ASC
-      `;
-
-      // Use getAllAsync for multiple row SELECT queries with parameter binding
-      const rows = (await db.getAllAsync(query, tripId)) as any[];
-      const locations: LocationSample[] = [];
-      for (const row of rows) {
-        const location: LocationSample = {
-          id: row.id,
-          tripId: row.trip_id,
-          timestamp: row.timestamp,
-          lat: row.latitude,
-          lng: row.longitude,
-          speed: row.speed || undefined,
-          accuracy: row.accuracy,
-          source: "gps", // Default source
-          createdAt: new Date(row.timestamp).toISOString(), // Use timestamp as created_at
-        };
-        locations.push(location);
-      }
-
-      console.log(
-        `✅ Loaded ${locations.length} location samples for trip:`,
-        tripId
-      );
-      return locations;
-    } catch (error) {
-      console.error("❌ Error fetching location history:", error);
-      throw new Error("Failed to fetch location history");
-    }
+    console.warn(
+      "⚠️ getLocationHistory is deprecated - locations are now in Supabase"
+    );
+    // Method kept for backward compatibility but returns empty array
+    return [];
   }
-
   /**
-   * Clear location history for a trip
-   */ static async clearLocationHistory(tripId: string): Promise<void> {
-    const db = await this.databaseService.getConnection();
-
-    try {
-      // Use runAsync for DELETE operations with parameter binding
-      await db.runAsync(
-        "DELETE FROM location_samples WHERE trip_id = ?",
-        tripId
-      );
-
-      console.log("✅ Location history cleared for trip:", tripId);
-    } catch (error) {
-      console.error("❌ Error clearing location history:", error);
-      throw new Error("Failed to clear location history");
-    }
+   * DEPRECATED: Clear location history for a trip (no longer needed with Supabase)
+   */
+  static async clearLocationHistory(tripId: string): Promise<void> {
+    console.warn(
+      "⚠️ clearLocationHistory is deprecated - locations are now in Supabase"
+    );
+    // Method kept for backward compatibility but does nothing
+    return;
   }
 
   /**

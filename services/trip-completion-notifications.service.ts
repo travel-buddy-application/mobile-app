@@ -101,11 +101,13 @@ export class TripCompletionNotificationService {
             title,
             body,
             rawData: {
-              type: "trip_completed",
+              type: "trip_ended_with_session",
               tripId: completedTrip.id,
               userId: user.id,
+              sessionId: completedTrip.id, // Use trip ID as session ID for compatibility
               userName,
-              tripTitle,
+              title: tripTitle,
+              body: `${userName} has safely completed "${tripTitle}"`,
               duration: durationText,
               destination: destinationAddress,
               completedAt: endTime.toISOString(),
@@ -147,13 +149,16 @@ export class TripCompletionNotificationService {
 
   /**
    * Send a personalized trip completion notification to a specific contact
-   */
-  static async sendPersonalizedNotification(
+   */ static async sendPersonalizedNotification(
     contact: { pushToken: string; displayName: string },
     completedTrip: Trip,
     userName: string
   ): Promise<boolean> {
     try {
+      // Get user information
+      const authStore = useAuthStore.getState();
+      const user = authStore.user;
+
       const tripTitle = completedTrip.title || "Safety Trip";
       const destinationAddress =
         completedTrip.destination.address || "their destination";
@@ -182,10 +187,13 @@ export class TripCompletionNotificationService {
         title,
         body,
         rawData: {
-          type: "trip_completed",
+          type: "trip_ended_with_session",
           tripId: completedTrip.id,
+          userId: user?.id || "unknown",
+          sessionId: completedTrip.id, // Use trip ID as session ID for compatibility
           userName,
-          tripTitle,
+          title: tripTitle,
+          body: `${userName} has safely completed "${tripTitle}"`,
           duration: durationText,
           destination: destinationAddress,
           completedAt: endTime.toISOString(),
