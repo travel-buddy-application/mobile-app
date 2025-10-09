@@ -42,6 +42,7 @@ export interface OnboardingStep {
 
 export type OnboardingSteps =
   | "profile"
+  | "otp-verification"
   | "contacts"
   | "permissions"
   | "completed";

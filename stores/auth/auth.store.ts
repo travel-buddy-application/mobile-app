@@ -235,7 +235,12 @@ export const useAuthStore = create<AuthState>()(
                 user,
                 isOnboarded: true, // If user exists, they've completed onboarding
                 currentOnboardingStep: "completed",
-                completedSteps: ["profile", "contacts", "permissions"],
+                completedSteps: [
+                  "profile",
+                  "otp-verification",
+                  "contacts",
+                  "permissions",
+                ],
                 isLoading: false,
               });
             } else {
