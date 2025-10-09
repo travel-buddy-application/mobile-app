@@ -22,7 +22,7 @@ export default function InviteAcceptScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { user } = useAuthStore();
-  const { acceptRequest, contacts } = useContactStore();
+  const { acceptRequest, contacts, declineRequest } = useContactStore();
   const [accepted, setAccepted] = useState(false);
 
   // Memoize invitation data to prevent re-parsing on every render
@@ -149,11 +149,17 @@ export default function InviteAcceptScreen() {
         {
           text: "Decline",
           style: "destructive",
-          onPress: () => router.back(),
+          onPress: async () => {
+            await declineRequest({
+              displayName: invitationData?.senderName || "",
+              pushToken: invitationData?.fcmToken || "",
+            });
+            router.push("/(tabs)");
+          },
         },
       ]
     );
-  }, []);
+  }, [declineRequest, invitationData]);
 
   // Handle invalid invitation
   if (!invitationData || invitationStatus.type === "invalid") {

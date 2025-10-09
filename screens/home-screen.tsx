@@ -59,10 +59,10 @@ export const HomeScreen: React.FC = () => {
         );
 
         let message =
-          "You need at least one accepted emergency contact to start a safe trip.";
+          "You need at least one accepted emergency contact to start a safe trip.\n";
 
         if (pendingContacts.length > 0) {
-          message += ` You have ${pendingContacts.length} pending contact${
+          message += `You have ${pendingContacts.length} pending contact${
             pendingContacts.length > 1 ? "s" : ""
           } that need${
             pendingContacts.length === 1 ? "s" : ""
@@ -70,7 +70,7 @@ export const HomeScreen: React.FC = () => {
         }
 
         if (declinedContacts.length > 0) {
-          message += ` ${declinedContacts.length} contact${
+          message += `${declinedContacts.length} contact${
             declinedContacts.length > 1 ? "s have" : " has"
           } declined your invitation.`;
         }

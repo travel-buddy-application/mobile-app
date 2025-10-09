@@ -35,6 +35,10 @@ interface ContactStoreState {
   clearError: () => void;
   setShowAddForm: (show: boolean) => void;
   acceptRequest: (invitationData: ContactCreateInput) => Promise<string>;
+  declineRequest: (invitationData: {
+    pushToken: string;
+    displayName: string;
+  }) => Promise<void>;
 }
 
 export const useContactStore = create<ContactStoreState>()(
@@ -194,6 +198,52 @@ export const useContactStore = create<ContactStoreState>()(
           } catch (error) {
             const errorMessage =
               error instanceof Error ? error.message : "Failed to add contact";
+            set({
+              error: errorMessage,
+              isLoading: false,
+            });
+            throw error;
+          }
+        },
+
+        // decline contact request (from invitation)
+        declineRequest: async (invitationData: {
+          pushToken: string;
+          displayName: string;
+        }) => {
+          set({ isLoading: true, error: null });
+          try {
+            const authState = useAuthStore.getState();
+            const currentUser = authState.user;
+            if (!currentUser) {
+              throw new Error("User not logged in");
+            }
+            // Send push notification to the contact requester if they have an FCM token
+            if (invitationData.pushToken) {
+              try {
+                await sendPushNotification({
+                  token: invitationData.pushToken,
+                  title: "Contact Request Declined",
+                  body: `${currentUser.name} has declined your contact request.`,
+                  rawData: {
+                    type: "decline_contact_request",
+                    senderEmail: currentUser.email || "",
+                  },
+                });
+                console.log("✅ Push notification sent to contact requester");
+              } catch (notificationError) {
+                console.warn(
+                  "⚠️ Failed to send push notification:",
+                  notificationError
+                );
+              }
+            }
+            set({ isLoading: false });
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error
+                ? error.message
+                : "Failed to decline request";
             set({
               error: errorMessage,
               isLoading: false,

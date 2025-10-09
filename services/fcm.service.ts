@@ -24,6 +24,7 @@ export interface FCMNotificationData {
     | "location_share"
     | "trip_update"
     | "accept_contact_request"
+    | "decline_contact_request"
     | "location_update"
     | "open_maps"
     | "trip_started_with_session"
@@ -184,6 +185,12 @@ export class FCMService {
       case "trip_ended_with_session":
         this.handleTripEndedWithSession(notificationData);
         break;
+      case "decline_contact_request":
+        if (notificationData.senderEmail) {
+          updateContactByEmail(notificationData.senderEmail, {
+            status: "declined",
+          });
+        }
     }
 
     try {

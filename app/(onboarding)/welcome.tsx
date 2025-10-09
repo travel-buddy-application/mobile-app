@@ -8,8 +8,8 @@ export default function WelcomeRoute() {
 
   const handleComplete = () => {
     completeOnboardingStep("profile");
-    setOnboardingStep("contacts");
-    router.replace("/(onboarding)/emergency-contacts");
+    setOnboardingStep("otp-verification");
+    router.replace("/(onboarding)/otp-verification");
   };
 
   return <WelcomeScreen onComplete={handleComplete} />;

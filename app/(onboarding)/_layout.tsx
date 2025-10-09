@@ -7,10 +7,11 @@ export default function OnboardingLayout() {
       screenOptions={{
         headerShown: false,
         gestureEnabled: false, // Prevent going back during onboarding
-        animation: 'slide_from_right',
+        animation: "slide_from_right",
       }}
     >
       <Stack.Screen name="welcome" />
+      <Stack.Screen name="otp-verification" />
       <Stack.Screen name="emergency-contacts" />
       <Stack.Screen name="permissions" />
     </Stack>
