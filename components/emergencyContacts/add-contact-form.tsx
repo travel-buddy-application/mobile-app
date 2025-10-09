@@ -8,7 +8,7 @@ import {
 } from "@/utils/validation";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, StyleSheet, TextInput, TouchableOpacity } from "react-native";
+import { Alert, StyleSheet, TextInput } from "react-native";
 import { ThemedButton } from "../themed-button";
 import { ThemedText } from "../themed-text";
 import { ThemedView } from "../themed-view";
@@ -187,7 +187,7 @@ export default function AddContactForm() {
           )}
         </ThemedView>
 
-        {/* Sharing Policy */}
+        {/* Sharing Policy
         <ThemedView style={styles.inputGroup}>
           <ThemedText style={styles.label}>
             What to share with this contact?
@@ -241,7 +241,7 @@ export default function AddContactForm() {
               </TouchableOpacity>
             ))}
           </ThemedView>
-        </ThemedView>
+        </ThemedView> */}
 
         {/* Error Message */}
         {error && (

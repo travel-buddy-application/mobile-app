@@ -1,3 +1,4 @@
+import { ContactSelectorModal } from "@/components/contact-selector-modal";
 import { ReceivedTripsSection } from "@/components/received-trips-section";
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
@@ -12,7 +13,7 @@ import {
   useTripSelectors,
   useTripStore,
 } from "@/stores";
-import React from "react";
+import React, { useState } from "react";
 import { Alert, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -22,6 +23,10 @@ export const HomeScreen: React.FC = () => {
   const { trips, completedTrips } = useTripSelectors();
   const { contacts } = useContactStore();
   const locationStore = useLocationStore();
+
+  // State for contact selection modal
+  const [showContactSelector, setShowContactSelector] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<string>("");
 
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");
@@ -81,7 +86,9 @@ export const HomeScreen: React.FC = () => {
           { text: "Got It" },
         ]);
         return;
-      } // Check location permissions before starting
+      }
+
+      // Check location permissions before showing contact selector
       const hasLocationPermission =
         await TripLocationIntegrationService.ensureLocationPermissions();
       if (!hasLocationPermission) {
@@ -93,9 +100,35 @@ export const HomeScreen: React.FC = () => {
         return;
       }
 
-      // Only use accepted contacts for the trip
-      const acceptedContactIds = acceptedContacts.map((contact) => contact.id);
-      await startTripWithContacts(acceptedContactIds);
+      // Show contact selector modal
+      setSelectedContactId(""); // Reset selection
+      setShowContactSelector(true);
+    } catch (error) {
+      Alert.alert("Error", `Failed to start safe trip: ${error}`);
+    }
+  };
+
+  // Handle contact selection modal actions
+  const handleContactSelect = (contactId: string) => {
+    setSelectedContactId(contactId);
+  };
+
+  const handleContactSelectorCancel = () => {
+    setShowContactSelector(false);
+    setSelectedContactId("");
+  };
+
+  const handleContactSelectorConfirm = async () => {
+    if (!selectedContactId) {
+      Alert.alert("Error", "Please select an emergency contact first.");
+      return;
+    }
+
+    setShowContactSelector(false);
+
+    // Start trip with selected contact
+    try {
+      await startTripWithContacts([selectedContactId]);
     } catch (error) {
       Alert.alert("Error", `Failed to start safe trip: ${error}`);
     }
@@ -147,15 +180,17 @@ export const HomeScreen: React.FC = () => {
           "⚠️ Location tracking may not be fully active:",
           locationError
         );
-      }
+      } // Get the selected contact name for the success message
+      const selectedContact = contacts.find((contact) =>
+        contactIds.includes(contact.id)
+      );
+      const contactName = selectedContact
+        ? selectedContact.displayName
+        : "emergency contact";
 
       Alert.alert(
         "Safe Trip Started!",
-        `Your safe trip is now active with ${
-          contactIds.length
-        } emergency contact${
-          contactIds.length > 1 ? "s" : ""
-        } monitoring your journey.`
+        `Your safe trip is now active! ${contactName} will be monitoring your journey and can receive your location updates.`
       );
     } catch (error) {
       Alert.alert("Error", `Failed to start trip: ${error}`);
@@ -381,14 +416,15 @@ export const HomeScreen: React.FC = () => {
                     { marginBottom: 12, fontSize: 12 },
                   ]}
                 >
-                  Starting a safe trip will automatically:
-                  {"\n"}• Notify your emergency contacts
+                  Starting a safe trip will:
+                  {"\n"}• Let you select one emergency contact
+                  {"\n"}• Notify your selected contact
                   {"\n"}• Begin location tracking every 10 seconds
                   {"\n"}• Enable emergency SOS functionality
                 </ThemedText>
               )}
               <ThemedButton
-                title="🛡️ Start Safe Trip"
+                title="🛡️ Select Contact & Start Trip"
                 onPress={handleStartTrip}
                 style={styles.startTripButton}
                 textStyle={styles.startTripButtonText}
@@ -438,6 +474,16 @@ export const HomeScreen: React.FC = () => {
           </ThemedView>
         </ThemedView>
       </ScrollView>
+
+      {/* Contact Selector Modal */}
+      <ContactSelectorModal
+        visible={showContactSelector}
+        contacts={contacts}
+        selectedContactId={selectedContactId}
+        onSelectContact={handleContactSelect}
+        onCancel={handleContactSelectorCancel}
+        onConfirm={handleContactSelectorConfirm}
+      />
     </SafeAreaView>
   );
 };
