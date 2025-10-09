@@ -3,7 +3,7 @@ import {
   periodicLocationSharingService,
   PeriodicLocationSharingService,
 } from "@/services/location/periodic-location-sharing.service";
-import { TripCompletionNotificationService } from "@/services/trip-completion-notifications.service";
+
 import { useLocationStore } from "@/stores/location/location.store";
 import { LocationSample, Trip, TripCreateInput } from "@/types/trip";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -182,43 +182,10 @@ export const useTripStore = create<TripState>()(
               }
 
               await locationSessionManager.stopSession();
-              console.log("📍 Location session stopped");
-
-              // Also stop any remaining periodic sharing for backward compatibility
+              console.log("📍 Location session stopped"); // Also stop any remaining periodic sharing for backward compatibility
               periodicLocationSharingService.stopPeriodicSharing();
             } catch (error) {
               console.warn("⚠️ Failed to stop location session:", error);
-            } // Send trip completion notifications to emergency contacts
-            try {
-              console.log(
-                "🔍 Debug: Trip completion - checking contacts data:"
-              );
-              console.log("- Trip ID:", updatedTrip.id);
-              console.log("- Trip contacts array:", updatedTrip.contacts);
-              console.log(
-                "- Trip contacts length:",
-                updatedTrip.contacts?.length || 0
-              );
-
-              const notificationResult =
-                await TripCompletionNotificationService.sendTripCompletionNotifications(
-                  updatedTrip
-                );
-              if (notificationResult.success) {
-                console.log(
-                  `🔔 Trip completion notifications sent: ${notificationResult.message}`
-                );
-              } else {
-                console.warn(
-                  `⚠️ Trip completion notifications failed: ${notificationResult.message}`
-                );
-              }
-            } catch (notificationError) {
-              console.error(
-                "❌ Failed to send trip completion notifications:",
-                notificationError
-              );
-              // Don't fail the trip completion if notifications fail
             }
 
             console.log("🏁 Trip ended successfully:", targetTripId);

@@ -28,7 +28,6 @@ export const HomeScreen: React.FC = () => {
   const cardBackgroundColor = useThemeColor({}, "cardBackgroundColor");
   const borderColor = useThemeColor({}, "cardBorderColor");
   const textColor = useThemeColor({}, "primaryButtonText");
-
   const handleStartTrip = async () => {
     try {
       // Check for emergency contacts first
@@ -45,7 +44,44 @@ export const HomeScreen: React.FC = () => {
         return;
       }
 
-      // Check location permissions before starting
+      // Check that at least one contact is in accepted state
+      const acceptedContacts = contacts.filter(
+        (contact) => contact.status === "accepted"
+      );
+      console.log("🔍 Safe trip - accepted contacts:", acceptedContacts.length);
+
+      if (acceptedContacts.length === 0) {
+        const pendingContacts = contacts.filter(
+          (contact) => contact.status === "pending"
+        );
+        const blockedContacts = contacts.filter(
+          (contact) => contact.status === "blocked"
+        );
+
+        let message =
+          "You need at least one accepted emergency contact to start a safe trip.";
+
+        if (pendingContacts.length > 0) {
+          message += ` You have ${pendingContacts.length} pending contact${
+            pendingContacts.length > 1 ? "s" : ""
+          } that need${
+            pendingContacts.length === 1 ? "s" : ""
+          } to accept your invitation.`;
+        }
+
+        if (blockedContacts.length > 0) {
+          message += ` ${blockedContacts.length} contact${
+            blockedContacts.length > 1 ? "s have" : " has"
+          } blocked you.`;
+        }
+
+        message += " Please check your contacts and try again.";
+
+        Alert.alert("Emergency Contact Not Available", message, [
+          { text: "Got It" },
+        ]);
+        return;
+      } // Check location permissions before starting
       const hasLocationPermission =
         await TripLocationIntegrationService.ensureLocationPermissions();
       if (!hasLocationPermission) {
@@ -57,7 +93,9 @@ export const HomeScreen: React.FC = () => {
         return;
       }
 
-      await startTripWithContacts(contactIds);
+      // Only use accepted contacts for the trip
+      const acceptedContactIds = acceptedContacts.map((contact) => contact.id);
+      await startTripWithContacts(acceptedContactIds);
     } catch (error) {
       Alert.alert("Error", `Failed to start safe trip: ${error}`);
     }

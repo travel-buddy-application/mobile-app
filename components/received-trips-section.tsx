@@ -242,7 +242,8 @@ export const ReceivedTripsSection: React.FC<ReceivedTripsProps> = ({
                 {session.tripTitle || "Safety Trip"}
               </ThemedText>
               <ThemedText style={styles.sessionTime}>
-                Started {formatTimeAgo(session.receivedAt)}
+                {session.isActive ? "Started" : "Ended"}{" "}
+                {formatTimeAgo(session.receivedAt)}
                 {session.lastLocationFetch && (
                   <ThemedText style={styles.lastFetch}>
                     {" • "}Last viewed
