@@ -116,6 +116,7 @@ export const useContactStore = create<ContactStoreState>()(
               phone: user.phone || "",
               fcmToken: user.fcmToken || "",
               receiverEmail: newContact.email,
+              profileImageUrl: user.profileImageUrl || "",
             };
             await emailService({
               contactPerson: newContact.displayName,
@@ -124,6 +125,7 @@ export const useContactStore = create<ContactStoreState>()(
               dashboardUrl:
                 DeepLinkService.generateInvitationLink(invitationData),
               sharingPolicy: newContact.sharingPolicy,
+              profileImageUrl: user.profileImageUrl || "",
             });
 
             const contacts = [...get().contacts, newContact];

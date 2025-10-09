@@ -8,6 +8,7 @@ export interface InvitationData {
   fcmToken?: string;
   message?: string;
   receiverEmail: string;
+  profileImageUrl: string;
 }
 
 export class DeepLinkService {
@@ -22,7 +23,7 @@ export class DeepLinkService {
       phone: data.phone,
       receiverEmail: data.receiverEmail,
       ...(data.fcmToken && { fcmToken: data.fcmToken }),
-      ...(data.message && { message: data.message }),
+      ...(data.profileImageUrl && { profileImageUrl: data.profileImageUrl }),
     });
 
     return `${baseUrl}?${params.toString()}`;
@@ -68,6 +69,7 @@ export class DeepLinkService {
         fcmToken: params.get("fcmToken") || undefined,
         message: params.get("message") || undefined,
         receiverEmail: params.get("receiverEmail") || "",
+        profileImageUrl: params.get("profileImageUrl") || "",
       };
     } catch (error) {
       console.error("Error parsing invitation URL:", error);

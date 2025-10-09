@@ -3,6 +3,11 @@ import { ReceivedTripsSection } from "@/components/received-trips-section";
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import {
+  defaultButtonColor,
+  errorColor,
+  successColor,
+} from "@/constants/theme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { PeriodicLocationSharingService } from "@/services/location/periodic-location-sharing.service";
 import { TripLocationIntegrationService } from "@/services/location/trip-location-integration.service";
@@ -14,7 +19,7 @@ import {
   useTripStore,
 } from "@/stores";
 import React, { useState } from "react";
-import { Alert, ScrollView, StyleSheet } from "react-native";
+import { Alert, Image, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export const HomeScreen: React.FC = () => {
@@ -295,9 +300,16 @@ export const HomeScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <ThemedView style={styles.header}>
-          <ThemedText type="title" style={styles.appTitle}>
-            🧳 Travel Buddy
-          </ThemedText>
+          <View style={styles.appTitleContainer}>
+            <Image
+              source={require("@/assets/images/icon.png")}
+              style={styles.appIcon}
+              resizeMode="contain"
+            />
+            <ThemedText type="title" style={styles.appTitle}>
+              Travel Buddy
+            </ThemedText>
+          </View>
           <ThemedText style={styles.welcomeText}>
             Welcome back, {user?.name || "Traveler"}!
           </ThemedText>
@@ -424,7 +436,7 @@ export const HomeScreen: React.FC = () => {
                 </ThemedText>
               )}
               <ThemedButton
-                title="🛡️ Select Contact & Start Trip"
+                title="🛡️ Start Trip"
                 onPress={handleStartTrip}
                 style={styles.startTripButton}
                 textStyle={styles.startTripButtonText}
@@ -499,10 +511,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 30,
   },
+  appTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  appIcon: {
+    width: 32,
+    height: 32,
+    marginRight: 12,
+  },
   appTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 8,
+    marginBottom: 0,
   },
   welcomeText: {
     fontSize: 16,
@@ -538,7 +560,7 @@ const styles = StyleSheet.create({
   activeTripCard: {
     padding: 20,
     borderRadius: 12,
-    backgroundColor: "#4CAF50",
+    backgroundColor: successColor,
   },
   activeTripTitle: {
     fontSize: 18,
@@ -554,7 +576,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   sosButton: {
-    backgroundColor: "#FF5722",
+    backgroundColor: errorColor,
     marginTop: 10,
   },
   sosButtonText: {
@@ -579,7 +601,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   startTripButton: {
-    backgroundColor: "#2196F3",
+    backgroundColor: defaultButtonColor,
     minWidth: 200,
   },
   startTripButtonText: {

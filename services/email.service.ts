@@ -4,6 +4,7 @@ interface EmailServiceParams {
   receiverEmail: string;
   dashboardUrl: string;
   sharingPolicy: string;
+  profileImageUrl: string;
 }
 
 interface LocationEmailParams {
@@ -21,7 +22,6 @@ interface LocationEmailParams {
   };
   isEmergency: boolean;
   emergencyMessage?: string;
-  sharingPolicy: string;
 }
 
 interface OTPEmailParams {
@@ -68,7 +68,7 @@ export const emailService = async ({
   person,
   receiverEmail,
   dashboardUrl,
-  sharingPolicy,
+  profileImageUrl,
 }: EmailServiceParams) => {
   try {
     console.log("dashboardUrl", dashboardUrl);
@@ -85,7 +85,7 @@ export const emailService = async ({
           person: person,
           receiverEmail: receiverEmail,
           dashboardUrl: dashboardUrl,
-          sharingPolicy: sharingPolicy,
+          profileImageUrl: profileImageUrl,
         }),
       }
     );
@@ -107,7 +107,6 @@ export const locationEmailService = async ({
   coordinates,
   isEmergency,
   emergencyMessage,
-  sharingPolicy,
 }: LocationEmailParams) => {
   try {
     console.log("Sending location email to:", receiverEmail);
@@ -130,7 +129,6 @@ export const locationEmailService = async ({
           coordinates,
           isEmergency,
           emergencyMessage,
-          sharingPolicy,
         }),
       }
     );
