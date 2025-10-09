@@ -16,6 +16,7 @@
     "@react-native-community/netinfo": "^11.4.1",
     "@react-native-firebase/app": "^23.4.0",
     "@react-native-firebase/messaging": "^23.4.0",
+    "@supabase/supabase-js": "^2.74.0",
     "expo": "54.0.12",
     "expo-constants": "~18.0.9",
     "expo-crypto": "^15.0.7",

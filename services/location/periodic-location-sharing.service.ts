@@ -53,7 +53,6 @@ export class PeriodicLocationSharingService {
       }s)`
     );
   }
-
   /**
    * Stop periodic location sharing
    */
@@ -71,6 +70,60 @@ export class PeriodicLocationSharingService {
 
     this.isSharing = false;
     console.log("✅ Periodic location sharing stopped");
+  }
+
+  /**
+   * Send trip ended notification to all emergency contacts with session info
+   */
+  async sendTripEndedWithSession(
+    trip: Trip,
+    sessionId: string,
+    userId: string
+  ): Promise<void> {
+    const eligibleContacts = this.getEligibleContacts();
+    const { user } = useAuthStore.getState();
+    const userName = user?.name || "Someone";
+
+    if (eligibleContacts.length === 0) {
+      console.log("⚠️ No eligible contacts for trip ended notification");
+      return;
+    }
+
+    console.log(
+      `📤 Sending trip ended notification with session to ${eligibleContacts.length} contacts`
+    );
+
+    const promises = eligibleContacts.map(async (contact) => {
+      try {
+        await sendPushNotification({
+          token: contact.pushToken!,
+          title: `🏁 ${userName} Completed Their Safety Trip`,
+          body: `${userName} has safely completed "${
+            trip.title || "Safety Trip"
+          }". Their live location sharing has ended.`,
+          rawData: {
+            type: "trip_ended_with_session",
+            tripId: trip.id,
+            contactId: contact.id,
+            userId: userId,
+            sessionId: sessionId,
+            userName: userName,
+            title: trip.title || "Safety Trip",
+            timestamp: new Date().toISOString(),
+          },
+        });
+        console.log(
+          `✅ Trip ended notification sent to ${contact.displayName}`
+        );
+      } catch (error) {
+        console.error(
+          `❌ Failed to send trip ended notification to ${contact.displayName}:`,
+          error
+        );
+      }
+    });
+
+    await Promise.all(promises);
   }
 
   /**
@@ -120,6 +173,63 @@ export class PeriodicLocationSharingService {
       } catch (error) {
         console.error(
           `❌ Failed to send trip started notification to ${contact.displayName}:`,
+          error
+        );
+      }
+    });
+
+    await Promise.all(promises);
+  }
+
+  /**
+   * Send trip started notification with session info (new architecture)
+   * Replaces periodic location sharing with on-demand fetching
+   */
+  async sendTripStartedWithSession(
+    trip: Trip,
+    sessionId: string,
+    userId: string
+  ): Promise<void> {
+    const eligibleContacts = this.getEligibleContacts();
+
+    if (eligibleContacts.length === 0) {
+      console.log("⚠️ No eligible contacts for trip started notification");
+      return;
+    }
+
+    // Get the current user's name from auth store
+    const authStore = useAuthStore.getState();
+    const userName = authStore.user?.name || "Travel Buddy User";
+
+    console.log(
+      `📤 Sending trip started notification with session to ${eligibleContacts.length} contacts`
+    );
+
+    const promises = eligibleContacts.map(async (contact) => {
+      try {
+        await sendPushNotification({
+          token: contact.pushToken!,
+          title: `🚀 ${userName} Started a Safety Trip`,
+          body: `${userName} has started "${
+            trip.title || "Safety Trip"
+          }". Tap to view their live location when needed.`,
+          rawData: {
+            type: "trip_started_with_session",
+            tripId: trip.id,
+            contactId: contact.id,
+            userId: userId,
+            sessionId: sessionId,
+            userName: userName,
+            title: trip.title || "Safety Trip",
+            timestamp: new Date().toISOString(),
+          },
+        });
+        console.log(
+          `✅ Trip started notification sent to ${contact.displayName}`
+        );
+      } catch (error) {
+        console.error(
+          `❌ Failed to send notification to ${contact.displayName}:`,
           error
         );
       }

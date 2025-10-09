@@ -1,3 +1,4 @@
+import { ReceivedTripsSection } from "@/components/received-trips-section";
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -249,6 +250,14 @@ export const HomeScreen: React.FC = () => {
             <ThemedText style={styles.statLabel}>Emergency Contacts</ThemedText>
           </ThemedView>
         </ThemedView>
+
+        {/* Received Trips Section */}
+        <ReceivedTripsSection
+          onLocationFetch={(sessionId) => {
+            console.log("📍 Location fetched for session:", sessionId);
+          }}
+        />
+
         {/* Active Trip or Start Trip */}
         <ThemedView style={styles.tripContainer}>
           {activeTrip ? (

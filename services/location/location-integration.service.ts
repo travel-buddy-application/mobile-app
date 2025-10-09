@@ -2,7 +2,7 @@
 // Integrates location tracking with trip lifecycle and database storage
 
 import { LocationSample } from "@/types/trip";
-import { TripDatabaseService } from "../database/trip.service";
+// TripDatabaseService import removed - using Supabase instead
 
 interface GoogleMapsConfig {
   enableSharing: boolean;
@@ -69,51 +69,75 @@ export class LocationIntegrationService {
 
     return message;
   }
-
   /**
-   * Save location sample to database with trip association
+   * Save location sample to Supabase database (replaces local SQLite storage)
+   * TODO: Implement Supabase integration
    */
-  static async saveLocationSample(
+  static async saveLocationToSupabase(
     location: LocationSample,
-    tripId?: string
+    sessionId: string,
+    userId: string
   ): Promise<void> {
     try {
-      const locationWithTrip = {
-        ...location,
-        tripId: tripId || location.tripId,
-      };
+      console.log("📍 Location will be saved to Supabase:", {
+        locationId: location.id,
+        sessionId,
+        userId,
+        coordinates: `${location.lat}, ${location.lng}`,
+      }); // Use the new Supabase location service
+      const { supabaseLocationService } = await import(
+        "../supabase/location.service"
+      );
 
-      if (!locationWithTrip.tripId) {
-        console.warn(
-          "⚠️ Location sample has no associated trip ID, skipping database save"
+      const savedLocation = await supabaseLocationService.saveLocation(
+        location,
+        sessionId,
+        userId
+      );
+
+      if (savedLocation) {
+        console.log(
+          "✅ Location saved to Supabase successfully:",
+          savedLocation.supabaseId
         );
-        return;
+      } else {
+        throw new Error("Failed to save location to Supabase");
       }
-
-      await TripDatabaseService.addLocationSample(locationWithTrip);
-      console.log("📍 Location sample saved to database:", location.id);
     } catch (error) {
-      console.error("❌ Failed to save location sample:", error);
+      console.error("❌ Failed to save location to Supabase:", error);
       // Don't throw - location tracking should continue even if save fails
     }
   }
-
   /**
-   * Get recent location samples for a trip with Google Maps URLs
+   * Get recent location samples from Supabase with Google Maps URLs
+   * TODO: Implement Supabase integration to replace local database
    */
-  static async getLocationHistoryWithUrls(
-    tripId: string,
+  static async getLocationHistoryFromSupabase(
+    sessionId: string,
+    userId: string,
     limit?: number
   ): Promise<(LocationSample & { mapsUrl: string })[]> {
     try {
-      const locations = await TripDatabaseService.getLocationHistory(tripId);
+      console.log("📍 Fetching location history from Supabase:", {
+        sessionId,
+        userId,
+        limit,
+      }); // Use the new Supabase location service
+      const { supabaseLocationService } = await import(
+        "../supabase/location.service"
+      );
+
+      const locations = await supabaseLocationService.getLocationsBySession(
+        sessionId,
+        limit || 100
+      );
 
       return locations.map((location) => ({
         ...location,
         mapsUrl: this.generateGoogleMapsUrl(location),
       }));
     } catch (error) {
-      console.error("❌ Failed to get location history:", error);
+      console.error("❌ Failed to get location history from Supabase:", error);
       return [];
     }
   }
@@ -123,7 +147,12 @@ export class LocationIntegrationService {
    */
   static async generateTripLocationSummary(tripId: string): Promise<string> {
     try {
-      const locations = await this.getLocationHistoryWithUrls(tripId, 10);
+      // TODO: Replace with Supabase location fetching
+      const locations = await this.getLocationHistoryFromSupabase(
+        "session_id",
+        "user_id",
+        10
+      );
 
       if (locations.length === 0) {
         return "No location data available for this trip.";
@@ -149,7 +178,7 @@ export class LocationIntegrationService {
         summary += `📍 Recent Checkpoints:\n`;
         const recentLocations = locations.slice(-5, -1); // Last 4 excluding the final one
 
-        recentLocations.forEach((location, index) => {
+        recentLocations.forEach((location: any, index: number) => {
           const time = new Date(location.timestamp).toLocaleTimeString();
           summary += `${index + 1}. ${time}: ${location.mapsUrl}\n`;
         });

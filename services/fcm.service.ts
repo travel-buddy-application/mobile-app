@@ -25,12 +25,17 @@ export interface FCMNotificationData {
     | "trip_update"
     | "accept_contact_request"
     | "location_update"
-    | "open_maps";
-
+    | "open_maps"
+    | "trip_started_with_session"
+    | "trip_ended_with_session";
   // Common fields
   tripId?: string;
   contactId?: string;
   userId?: string;
+  sessionId?: string;
+  userName?: string;
+  title?: string;
+  body?: string;
 
   // Contact request fields
   senderEmail?: string;
@@ -173,6 +178,12 @@ export class FCMService {
           });
         }
         break;
+      case "trip_started_with_session":
+        this.handleTripStartedWithSession(notificationData);
+        break;
+      case "trip_ended_with_session":
+        this.handleTripEndedWithSession(notificationData);
+        break;
     }
 
     try {
@@ -231,6 +242,9 @@ export class FCMService {
           });
         }
         break;
+      case "trip_ended_with_session":
+        this.handleTripEndedWithSession(notificationData);
+        break;
     }
     // Handle background processing if needed
     // This runs when app is in background or killed
@@ -245,7 +259,7 @@ export class FCMService {
     try {
       // Handle action-based notifications (modern approach)
       if (
-        notificationData.action === "open_maps" &&
+        notificationData.type === "open_maps" &&
         notificationData.lat &&
         notificationData.lng
       ) {
@@ -273,6 +287,9 @@ export class FCMService {
           break;
         case "location_update":
           this.openLocationInGoogleMaps(notificationData);
+          break;
+        case "trip_started_with_session":
+          this.handleTripStartedWithSession(notificationData);
           break;
         default:
           // Navigate to home or appropriate default screen
@@ -430,6 +447,118 @@ export class FCMService {
           },
           { text: "OK" },
         ]
+      );
+    }
+  }
+  private handleTripStartedWithSession(data: FCMNotificationData): void {
+    console.log("🚀 Handling trip started with session notification:", data);
+
+    // Store the received session for later access
+    if (data.sessionId && data.userId) {
+      // Dynamic import to avoid circular dependencies
+      import("@/stores/received-trips/received-trips.store").then(
+        ({ useReceivedTripsStore }) => {
+          useReceivedTripsStore.getState().addReceivedSession({
+            sessionId: data.sessionId!,
+            userId: data.userId!,
+            userName: data.userName,
+            tripTitle: data.title || "Safety Trip",
+          });
+        }
+      );
+    }
+
+    // Show alert with option to view live location
+    Alert.alert(
+      "🚀 Trip Started",
+      data.body ||
+        `${
+          data.userName || "Someone"
+        } has started a safety trip. You can view their live location anytime.`,
+      [
+        { text: "OK", style: "default" },
+        {
+          text: "View Live Location",
+          onPress: async () => {
+            if (data.sessionId && data.userId) {
+              await this.fetchAndOpenLatestLocation(
+                data.sessionId,
+                data.userName
+              );
+            } else {
+              Alert.alert(
+                "Error",
+                "Cannot view location - session information missing"
+              );
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  private handleTripEndedWithSession(data: FCMNotificationData): void {
+    console.log("🏁 Handling trip ended with session notification:", data);
+
+    // Mark the received session as inactive
+    if (data.sessionId && data.userId) {
+      // Dynamic import to avoid circular dependencies
+      import("@/stores/received-trips/received-trips.store").then(
+        ({ useReceivedTripsStore }) => {
+          useReceivedTripsStore.getState().markSessionInactive(data.sessionId!);
+          console.log("🔴 Marked session as inactive:", data.sessionId);
+        }
+      );
+    }
+
+    // Show notification that trip has ended
+    Alert.alert(
+      "🏁 Trip Ended",
+      data.body ||
+        `${
+          data.userName || "Someone"
+        } has safely completed their trip. You can no longer view their live location.`,
+      [{ text: "OK", style: "default" }]
+    );
+  }
+
+  private async fetchAndOpenLatestLocation(
+    sessionId: string,
+    userName?: string
+  ): Promise<void> {
+    try {
+      console.log("📍 Fetching latest location for session:", sessionId);
+      // Dynamic import to avoid circular dependencies
+      const { supabaseLocationService } = await import(
+        "@/services/supabase/location.service"
+      );
+
+      const latestLocation = await supabaseLocationService.getLatestLocation(
+        sessionId
+      );
+
+      if (latestLocation) {
+        console.log("✅ Latest location found, opening in maps");
+        await this.openMaps(
+          latestLocation.lat.toString(),
+          latestLocation.lng.toString(),
+          `${userName || "Safety Trip"} - Live Location`
+        );
+      } else {
+        Alert.alert(
+          "No Location Available",
+          `${
+            userName || "The person"
+          } hasn't shared their location yet. Please try again later.`,
+          [{ text: "OK" }]
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error fetching latest location:", error);
+      Alert.alert(
+        "Error",
+        "Failed to fetch location. Please try again later.",
+        [{ text: "OK" }]
       );
     }
   }
