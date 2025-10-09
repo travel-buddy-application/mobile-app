@@ -17,6 +17,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({ contact }) => {
   const cardBackgroundColor = useThemeColor({}, "cardBackgroundColor");
   const borderColor = useThemeColor({}, "cardBorderColor");
   const textColor = useThemeColor({}, "text");
+  const defaultTextColour = useThemeColor({}, "placeholderTextColor");
 
   // Status colors
   const getStatusColor = (status: string) => {
@@ -27,7 +28,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({ contact }) => {
         return errorColor; // Red
       case "pending":
       default:
-        return textColor; // Normal color
+        return defaultTextColour; // Normal color
     }
   };
 

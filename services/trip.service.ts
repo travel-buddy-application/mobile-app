@@ -1,115 +1,216 @@
-import { Trip, TripCreateInput } from "@/types/trip";
-import { del, get, post, put, uploadFile } from "@/utils/http";
+/**
+ * Trip Completion Notification Service
+ * Handles sending push notifications when trips are completed
+ */
+
+import { useAuthStore } from "@/stores/auth/auth.store";
+import { useContactStore } from "@/stores/contact/contact.store";
+import { Trip } from "@/types/trip";
+import { sendPushNotification } from "./notifications.service";
 
 export class TripService {
   /**
-   * Fetch all trips for the current user
+   * Send trip completion notifications to all emergency contacts
    */
-  static async getAllTrips(): Promise<Trip[]> {
+  static async sendTripCompletionNotifications(completedTrip: Trip): Promise<{
+    success: boolean;
+    message: string;
+    notificationsSent: number;
+  }> {
     try {
-      return await get<Trip[]>("trips");
-    } catch (error) {
-      console.error("Error fetching trips:", error);
-      throw new Error("Failed to fetch trips");
-    }
-  }
-
-  /**
-   * Fetch a specific trip by ID
-   */
-  static async getTripById(id: string): Promise<Trip> {
-    try {
-      return await get<Trip>(`trips/${id}`);
-    } catch (error) {
-      console.error("Error fetching trip:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Create a new trip
-   */
-  static async createTrip(tripData: TripCreateInput): Promise<Trip> {
-    try {
-      return await post<Trip>("trips", tripData);
-    } catch (error) {
-      console.error("Error creating trip:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Update an existing trip
-   */
-  static async updateTrip(id: string, tripData: Partial<Trip>): Promise<Trip> {
-    try {
-      return await put<Trip>(`trips/${id}`, tripData);
-    } catch (error) {
-      console.error("Error updating trip:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete a trip
-   */
-  static async deleteTrip(id: string): Promise<void> {
-    try {
-      await del(`trips/${id}`);
-    } catch (error) {
-      console.error("Error deleting trip:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Search trips by query
-   */
-  static async searchTrips(query: string): Promise<Trip[]> {
-    try {
-      return await get<Trip[]>(`trips/search?q=${encodeURIComponent(query)}`);
-    } catch (error) {
-      console.error("Error searching trips:", error);
-      throw new Error("Failed to search trips");
-    }
-  }
-
-  /**
-   * Get popular destinations
-   */
-  static async getPopularDestinations(): Promise<string[]> {
-    try {
-      return await get<string[]>("destinations/popular");
-    } catch (error) {
-      console.error("Error fetching popular destinations:", error);
-      throw new Error("Failed to fetch popular destinations");
-    }
-  }
-
-  /**
-   * Upload trip image
-   */
-  static async uploadTripImage(
-    tripId: string,
-    imageUri: string
-  ): Promise<string> {
-    try {
-      const formData = new FormData();
-      formData.append("image", {
-        uri: imageUri,
-        type: "image/jpeg",
-        name: "trip-image.jpg",
-      } as any);
-
-      const response = await uploadFile<{ imageUrl: string }>(
-        `trips/${tripId}/image`,
-        formData
+      console.log(
+        "🔔 Starting trip completion notifications for:",
+        completedTrip.id
       );
 
-      return response.imageUrl;
+      // Get user and contact information
+      const contactStore = useContactStore.getState();
+      const authStore = useAuthStore.getState();
+      const user = authStore.user;
+
+      if (!user) {
+        return {
+          success: false,
+          message: "User not found",
+          notificationsSent: 0,
+        };
+      }
+
+      // Get trip contacts
+      const tripContacts = contactStore.contacts.filter((contact) =>
+        completedTrip.contacts.includes(contact.id)
+      );
+
+      if (tripContacts.length === 0) {
+        return {
+          success: false,
+          message: "No contacts found for this trip",
+          notificationsSent: 0,
+        };
+      }
+
+      // Filter contacts that can receive notifications
+      const notifiableContacts = tripContacts.filter(
+        (contact) =>
+          contact.pushToken &&
+          contact.status === "accepted" &&
+          (contact.sharingPolicy === "all" ||
+            contact.sharingPolicy === "alerts")
+      );
+
+      if (notifiableContacts.length === 0) {
+        return {
+          success: false,
+          message:
+            "No contacts available for notifications (no push tokens or invalid permissions)",
+          notificationsSent: 0,
+        };
+      }
+
+      // Calculate trip duration
+      const startTime = new Date(completedTrip.startAt);
+      const endTime = completedTrip.endAt
+        ? new Date(completedTrip.endAt)
+        : new Date();
+      const durationMs = endTime.getTime() - startTime.getTime();
+      const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+      const durationMinutes = Math.floor(
+        (durationMs % (1000 * 60 * 60)) / (1000 * 60)
+      );
+
+      const durationText =
+        durationHours > 0
+          ? `${durationHours}h ${durationMinutes}m`
+          : `${durationMinutes}m`;
+
+      // Create notification content
+      const userName = user.name || "Travel Buddy User";
+      const tripTitle = completedTrip.title || "Safety Trip";
+      const destinationAddress =
+        completedTrip.destination.address || "their destination";
+
+      const title = `${userName} completed their trip`;
+      const body = `${userName} has safely completed their trip "${tripTitle}" to ${destinationAddress}. Trip duration: ${durationText}`;
+
+      // Send notifications to all contacts
+      let notificationsSent = 0;
+      const notificationPromises = notifiableContacts.map(async (contact) => {
+        try {
+          await sendPushNotification({
+            token: contact.pushToken!,
+            title,
+            body,
+            rawData: {
+              type: "trip_ended_with_session",
+              tripId: completedTrip.id,
+              userId: user.id,
+              sessionId: completedTrip.id, // Use trip ID as session ID for compatibility
+              userName,
+              title: tripTitle,
+              body: `${userName} has safely completed "${tripTitle}"`,
+              duration: durationText,
+              destination: destinationAddress,
+              completedAt: endTime.toISOString(),
+            },
+          });
+
+          console.log(
+            `✅ Trip completion notification sent to: ${contact.displayName}`
+          );
+          notificationsSent++;
+        } catch (error) {
+          console.error(
+            `❌ Failed to send notification to ${contact.displayName}:`,
+            error
+          );
+        }
+      });
+
+      // Wait for all notifications to complete
+      await Promise.allSettled(notificationPromises);
+
+      const successMessage = `Trip completion notifications sent to ${notificationsSent} of ${notifiableContacts.length} contacts`;
+      console.log(`🔔 ${successMessage}`);
+
+      return {
+        success: notificationsSent > 0,
+        message: successMessage,
+        notificationsSent,
+      };
     } catch (error) {
-      console.error("Error uploading image:", error);
-      throw new Error("Failed to upload image");
+      console.error("❌ Failed to send trip completion notifications:", error);
+      return {
+        success: false,
+        message: `Failed to send notifications: ${error}`,
+        notificationsSent: 0,
+      };
+    }
+  }
+
+  /**
+   * Send a personalized trip completion notification to a specific contact
+   */ static async sendPersonalizedNotification(
+    contact: { pushToken: string; displayName: string },
+    completedTrip: Trip,
+    userName: string
+  ): Promise<boolean> {
+    try {
+      // Get user information
+      const authStore = useAuthStore.getState();
+      const user = authStore.user;
+
+      const tripTitle = completedTrip.title || "Safety Trip";
+      const destinationAddress =
+        completedTrip.destination.address || "their destination";
+
+      // Calculate trip duration
+      const startTime = new Date(completedTrip.startAt);
+      const endTime = completedTrip.endAt
+        ? new Date(completedTrip.endAt)
+        : new Date();
+      const durationMs = endTime.getTime() - startTime.getTime();
+      const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+      const durationMinutes = Math.floor(
+        (durationMs % (1000 * 60 * 60)) / (1000 * 60)
+      );
+
+      const durationText =
+        durationHours > 0
+          ? `${durationHours}h ${durationMinutes}m`
+          : `${durationMinutes}m`;
+
+      const title = `${userName} completed their trip`;
+      const body = `Good news! ${userName} has safely arrived at ${destinationAddress} after a ${durationText} trip. They're safe and sound! 🎉`;
+
+      await sendPushNotification({
+        token: contact.pushToken,
+        title,
+        body,
+        rawData: {
+          type: "trip_ended_with_session",
+          tripId: completedTrip.id,
+          userId: user?.id || "unknown",
+          sessionId: completedTrip.id, // Use trip ID as session ID for compatibility
+          userName,
+          title: tripTitle,
+          body: `${userName} has safely completed "${tripTitle}"`,
+          duration: durationText,
+          destination: destinationAddress,
+          completedAt: endTime.toISOString(),
+          personalizedFor: contact.displayName,
+        },
+      });
+
+      console.log(
+        `✅ Personalized trip completion notification sent to: ${contact.displayName}`
+      );
+      return true;
+    } catch (error) {
+      console.error(
+        `❌ Failed to send personalized notification to ${contact.displayName}:`,
+        error
+      );
+      return false;
     }
   }
 }
