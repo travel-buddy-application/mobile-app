@@ -245,7 +245,7 @@ export class FCMService {
     try {
       // Handle action-based notifications (modern approach)
       if (
-        notificationData.action === "open_maps" &&
+        notificationData.type === "open_maps" &&
         notificationData.lat &&
         notificationData.lng
       ) {
