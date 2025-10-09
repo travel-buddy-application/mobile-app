@@ -1,5 +1,4 @@
 import { databaseService } from "@/services/database/database.service";
-import testDatabase from "@/utils/database-test";
 import { useEffect, useState } from "react";
 
 /**
@@ -43,34 +42,6 @@ export const useDatabase = () => {
     }
   };
 
-  // Run test suite
-  const runTestSuite = async () => {
-    try {
-      setIsLoading(true);
-      await testDatabase.runFullTestSuite();
-      await refreshDatabaseInfo(); // Refresh info after tests
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Test suite failed");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Clean up test data
-  const cleanupTestData = async () => {
-    try {
-      setIsLoading(true);
-      await testDatabase.cleanupTestData();
-      await refreshDatabaseInfo(); // Refresh info after cleanup
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Cleanup failed");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Clear all database data
   const clearAllData = async () => {
     try {
@@ -99,7 +70,6 @@ export const useDatabase = () => {
 
     initDatabase();
   }, []);
-
   return {
     isInitialized,
     isLoading,
@@ -108,8 +78,6 @@ export const useDatabase = () => {
     // Actions
     refreshDatabaseInfo,
     runHealthCheck,
-    runTestSuite,
-    cleanupTestData,
     clearAllData,
   };
 };

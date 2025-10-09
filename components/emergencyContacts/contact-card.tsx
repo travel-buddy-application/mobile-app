@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { errorColor, successColor } from "@/constants/theme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useContactStore } from "@/stores/contact/contact.store";
 import { Contact } from "@/types/trip";
@@ -16,7 +17,32 @@ export const ContactCard: React.FC<ContactCardProps> = ({ contact }) => {
   const cardBackgroundColor = useThemeColor({}, "cardBackgroundColor");
   const borderColor = useThemeColor({}, "cardBorderColor");
   const textColor = useThemeColor({}, "text");
-  const dangerColor = "#F44336";
+
+  // Status colors
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "accepted":
+        return successColor; // Green
+      case "declined":
+        return errorColor; // Red
+      case "pending":
+      default:
+        return textColor; // Normal color
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "accepted":
+        return "Accepted";
+      case "declined":
+        return "Declined";
+      case "pending":
+      default:
+        return "Pending";
+    }
+  };
+
   const { deleteContact } = useContactStore();
   const handleDeleteContact = () => {
     Alert.alert(
@@ -57,8 +83,13 @@ export const ContactCard: React.FC<ContactCardProps> = ({ contact }) => {
             <ThemedText style={styles.contactName}>
               {contact.displayName}
             </ThemedText>
-            <ThemedText style={styles.contactRelationship}>
-              {contact.status}
+            <ThemedText
+              style={[
+                styles.contactRelationship,
+                { color: getStatusColor(contact.status) },
+              ]}
+            >
+              {getStatusText(contact.status)}
             </ThemedText>
           </ThemedView>
           <TouchableOpacity
@@ -71,11 +102,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({ contact }) => {
               },
             ]}
           >
-            <MaterialIcons
-              name="delete-outline"
-              size={20}
-              color={dangerColor}
-            />
+            <MaterialIcons name="delete-outline" size={20} color={errorColor} />
           </TouchableOpacity>
         </ThemedView>
 
@@ -154,7 +181,7 @@ const styles = StyleSheet.create({
   },
   contactRelationship: {
     fontSize: 14,
-    opacity: 0.7,
+    fontWeight: "semibold",
   },
   deleteButton: {
     padding: 4,

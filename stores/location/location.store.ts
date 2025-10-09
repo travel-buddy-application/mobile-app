@@ -119,18 +119,43 @@ export const useLocationStore = create<LocationStoreState>()(
 
         if (validation.warnings.length > 0) {
           console.warn("⚠️ Location quality issues:", validation.warnings);
-        }
-
-        // Update local state
+        } // Update local state
         set({
           currentLocation: location,
           lastUpdate: Date.now(),
           accuracy: location.accuracy,
         });
 
-        // Save to database if trip ID is provided
+        // Save to Supabase if trip ID is provided and session is active
         if (tripId || location.tripId) {
-          await LocationIntegrationService.saveLocationSample(location, tripId);
+          try {
+            const { locationSessionManager } = await import(
+              "@/services/location/session-manager.service"
+            );
+            const { LocationIntegrationService } = await import(
+              "@/services/location/location-integration.service"
+            );
+
+            const sessionData =
+              locationSessionManager.getSessionNotificationData();
+
+            if (sessionData) {
+              await LocationIntegrationService.saveLocationToSupabase(
+                location,
+                sessionData.sessionId,
+                sessionData.userId
+              );
+              console.log(
+                "✅ Location saved to Supabase via session:",
+                sessionData.sessionId
+              );
+            } else {
+              console.warn("⚠️ No active session for location saving");
+            }
+          } catch (error) {
+            console.warn("⚠️ Failed to save location to Supabase:", error);
+            // Don't throw - location tracking should continue
+          }
         }
 
         console.log(`📍 Location updated (${validation.quality} quality):`, {

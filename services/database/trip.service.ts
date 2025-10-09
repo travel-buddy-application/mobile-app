@@ -45,6 +45,8 @@ export class TripDatabaseService {
           created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
+      console.log("🔍 Creating trip with contacts:", newTrip.contacts);
+      console.log("🔍 Stringified contacts:", JSON.stringify(newTrip.contacts));
 
       await db.runAsync(
         query,
@@ -64,6 +66,7 @@ export class TripDatabaseService {
       );
 
       console.log("✅ Trip created successfully:", newTrip.id);
+      console.log("✅ Trip created with contacts:", newTrip.contacts);
       return newTrip;
     } catch (error) {
       console.error("❌ Error creating trip:", error);
@@ -151,7 +154,6 @@ export class TripDatabaseService {
       throw new Error("Failed to fetch trip");
     }
   }
-
   /**
    * Update trip status and other fields
    */ static async updateTrip(
@@ -163,33 +165,41 @@ export class TripDatabaseService {
     try {
       const updatedAt = new Date().toISOString();
 
-      // Build update fields dynamically
-      const updateFields: string[] = [`updated_at = '${updatedAt}'`];
+      // Build update fields and parameters using proper parameter binding
+      const updateFields: string[] = ["updated_at = ?"];
+      const parameters: any[] = [updatedAt];
 
       if (updates.status) {
-        updateFields.push(`status = '${updates.status}'`);
+        updateFields.push("status = ?");
+        parameters.push(updates.status);
       }
       if (updates.endAt) {
-        updateFields.push(`actual_end_time = '${updates.endAt}'`);
+        updateFields.push("actual_end_time = ?");
+        parameters.push(updates.endAt);
       }
-
       if (updates.title) {
-        updateFields.push(`name = '${updates.title}'`);
+        updateFields.push("name = ?");
+        parameters.push(updates.title);
+      }
+      if (updates.contacts) {
+        updateFields.push("emergency_contacts = ?");
+        parameters.push(JSON.stringify(updates.contacts));
       }
 
-      if (updates.contacts) {
-        updateFields.push(
-          `emergency_contacts = '${JSON.stringify(updates.contacts)}'`
-        );
-      }
+      // Add WHERE clause parameters
+      parameters.push(id);
+      parameters.push("current-user");
 
       const query = `
         UPDATE trips 
         SET ${updateFields.join(", ")}
-        WHERE id = '${id}' AND user_id = 'current-user'
+        WHERE id = ? AND user_id = ?
       `;
 
-      await db.execAsync(query);
+      console.log("🔄 Updating trip with query:", query);
+      console.log("🔄 Parameters:", parameters);
+
+      await db.runAsync(query, ...parameters);
 
       // Fetch and return updated trip
       const updatedTrip = await this.getTripById(id);
@@ -198,6 +208,7 @@ export class TripDatabaseService {
       }
 
       console.log("✅ Trip updated successfully:", id);
+      console.log("✅ Updated trip contacts:", updatedTrip.contacts);
       return updatedTrip;
     } catch (error) {
       console.error("❌ Error updating trip:", error);
@@ -231,96 +242,38 @@ export class TripDatabaseService {
       throw new Error("Failed to delete trip");
     }
   }
-
   /**
-   * Add location sample to a trip
-   */ static async addLocationSample(location: LocationSample): Promise<void> {
-    const db = await this.databaseService.getConnection();
-
-    try {
-      const query = `
-        INSERT INTO location_samples (
-          id, trip_id, latitude, longitude, accuracy, speed, timestamp
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `;
-      await db.runAsync(
-        query,
-        location.id,
-        location.tripId,
-        location.lat,
-        location.lng,
-        location.accuracy,
-        location.speed || null,
-        location.timestamp
-      );
-
-      console.log("✅ Location sample added:", location.id);
-    } catch (error) {
-      console.error("❌ Error adding location sample:", error);
-      throw new Error("Failed to add location sample");
-    }
+   * DEPRECATED: Local location sampling removed
+   * Locations are now saved directly to Supabase instead of local SQLite
+   */
+  static async addLocationSample(location: LocationSample): Promise<void> {
+    console.warn(
+      "⚠️ addLocationSample is deprecated - locations are now saved to Supabase"
+    );
+    // Method kept for backward compatibility but does nothing
+    return;
   }
-
   /**
-   * Get location history for a trip
+   * DEPRECATED: Local location history removed
+   * Location history is now fetched from Supabase instead of local SQLite
    */ static async getLocationHistory(
     tripId: string
   ): Promise<LocationSample[]> {
-    const db = await this.databaseService.getConnection();
-
-    try {
-      const query = `
-        SELECT * FROM location_samples 
-        WHERE trip_id = ? 
-        ORDER BY timestamp ASC
-      `;
-
-      // Use getAllAsync for multiple row SELECT queries with parameter binding
-      const rows = (await db.getAllAsync(query, tripId)) as any[];
-      const locations: LocationSample[] = [];
-      for (const row of rows) {
-        const location: LocationSample = {
-          id: row.id,
-          tripId: row.trip_id,
-          timestamp: row.timestamp,
-          lat: row.latitude,
-          lng: row.longitude,
-          speed: row.speed || undefined,
-          accuracy: row.accuracy,
-          source: "gps", // Default source
-          createdAt: new Date(row.timestamp).toISOString(), // Use timestamp as created_at
-        };
-        locations.push(location);
-      }
-
-      console.log(
-        `✅ Loaded ${locations.length} location samples for trip:`,
-        tripId
-      );
-      return locations;
-    } catch (error) {
-      console.error("❌ Error fetching location history:", error);
-      throw new Error("Failed to fetch location history");
-    }
+    console.warn(
+      "⚠️ getLocationHistory is deprecated - locations are now in Supabase"
+    );
+    // Method kept for backward compatibility but returns empty array
+    return [];
   }
-
   /**
-   * Clear location history for a trip
-   */ static async clearLocationHistory(tripId: string): Promise<void> {
-    const db = await this.databaseService.getConnection();
-
-    try {
-      // Use runAsync for DELETE operations with parameter binding
-      await db.runAsync(
-        "DELETE FROM location_samples WHERE trip_id = ?",
-        tripId
-      );
-
-      console.log("✅ Location history cleared for trip:", tripId);
-    } catch (error) {
-      console.error("❌ Error clearing location history:", error);
-      throw new Error("Failed to clear location history");
-    }
+   * DEPRECATED: Clear location history for a trip (no longer needed with Supabase)
+   */
+  static async clearLocationHistory(tripId: string): Promise<void> {
+    console.warn(
+      "⚠️ clearLocationHistory is deprecated - locations are now in Supabase"
+    );
+    // Method kept for backward compatibility but does nothing
+    return;
   }
 
   /**

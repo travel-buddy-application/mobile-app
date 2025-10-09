@@ -1,4 +1,10 @@
 import { TripDatabaseService } from "@/services/database/trip.service";
+import {
+  periodicLocationSharingService,
+  PeriodicLocationSharingService,
+} from "@/services/location/periodic-location-sharing.service";
+
+import { useLocationStore } from "@/stores/location/location.store";
 import { LocationSample, Trip, TripCreateInput } from "@/types/trip";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
@@ -23,6 +29,9 @@ interface TripState {
   clearLocationHistory: (tripId?: string) => Promise<void>;
   clearError: () => void;
   initializeFromDatabase: () => Promise<void>;
+
+  // Periodic location sharing
+  isPeriodicSharingActive: () => boolean;
 }
 
 export const useTripStore = create<TripState>()(
@@ -48,7 +57,40 @@ export const useTripStore = create<TripState>()(
               trips,
               activeTrip: newTrip,
               isLoading: false,
-            });
+            }); // Start location session and updated notification system
+            try {
+              const { locationSessionManager } = await import(
+                "@/services/location/session-manager.service"
+              );
+
+              // Start new location session for this trip
+              const session = await locationSessionManager.startSession(
+                newTrip.id,
+                newTrip.title
+              );
+
+              console.log("📍 Location session started for trip:", {
+                tripId: newTrip.id,
+                sessionId: session.sessionId,
+              });
+
+              // Send trip started notification with session info (no periodic spam)
+              await periodicLocationSharingService.sendTripStartedWithSession(
+                newTrip,
+                session.sessionId,
+                session.userId
+              );
+
+              console.log(
+                "🔔 Trip started notification sent with session info"
+              );
+            } catch (locationError) {
+              console.warn(
+                "⚠️ Failed to start location session:",
+                locationError
+              );
+              // Don't fail the trip creation if session fails
+            }
 
             console.log("🚀 Trip started successfully:", newTrip.id);
             return newTrip;
@@ -108,12 +150,43 @@ export const useTripStore = create<TripState>()(
             const updatedTrips = trips.map((trip) =>
               trip.id === targetTripId ? updatedTrip : trip
             );
-
             set({
               trips: updatedTrips,
               activeTrip: null,
               isLoading: false,
-            });
+            }); // Stop location session and sharing
+            try {
+              const { locationSessionManager } = await import(
+                "@/services/location/session-manager.service"
+              );
+              const currentSession =
+                await locationSessionManager.getCurrentSession();
+
+              // Send trip ended notification with session info before stopping
+              if (currentSession) {
+                try {
+                  await periodicLocationSharingService.sendTripEndedWithSession(
+                    updatedTrip,
+                    currentSession.sessionId,
+                    currentSession.userId
+                  );
+                  console.log(
+                    "🔔 Trip ended notification sent with session info"
+                  );
+                } catch (notificationError) {
+                  console.warn(
+                    "⚠️ Failed to send trip ended notification:",
+                    notificationError
+                  );
+                }
+              }
+
+              await locationSessionManager.stopSession();
+              console.log("📍 Location session stopped"); // Also stop any remaining periodic sharing for backward compatibility
+              periodicLocationSharingService.stopPeriodicSharing();
+            } catch (error) {
+              console.warn("⚠️ Failed to stop location session:", error);
+            }
 
             console.log("🏁 Trip ended successfully:", targetTripId);
           } catch (error) {
@@ -149,15 +222,41 @@ export const useTripStore = create<TripState>()(
               trip.id === targetTripId ? updatedTrip : trip
             );
 
-            // TODO: Trigger SOS notifications via service
-            // await SOSService.triggerEmergency(targetTripId);
-
             set({
               trips: updatedTrips,
               activeTrip:
                 updatedTrips.find((t) => t.id === targetTripId) || null,
               isLoading: false,
-            });
+            }); // Send emergency notifications via periodic location sharing service
+            try {
+              const locationStore = useLocationStore.getState();
+              if (locationStore.currentLocation) {
+                const result =
+                  await PeriodicLocationSharingService.sendManualEmergencyAlert(
+                    updatedTrip,
+                    locationStore.currentLocation,
+                    "🚨 SOS EMERGENCY: Help needed immediately!"
+                  );
+
+                if (result.success) {
+                  console.log(
+                    `🚨 Emergency notifications sent to ${result.sentCount} contacts`
+                  );
+                } else {
+                  console.warn(
+                    "⚠️ No emergency contacts available for SOS alerts"
+                  );
+                }
+              } else {
+                console.warn("⚠️ No location available for SOS alert");
+              }
+            } catch (notificationError) {
+              console.error(
+                "❌ Failed to send SOS notifications:",
+                notificationError
+              );
+              // Don't fail the SOS trigger if notifications fail
+            }
 
             console.log("🆘 SOS triggered successfully:", targetTripId);
           } catch (error) {
@@ -206,67 +305,62 @@ export const useTripStore = create<TripState>()(
               ...location,
               tripId: activeTrip.id,
             };
-
             try {
-              // Save to SQLite database
-              await TripDatabaseService.addLocationSample(updatedLocation);
+              // Note: Local SQLite storage removed - locations will be saved to Supabase
+              // TODO: Save to Supabase with session_id instead of tripId
 
-              // Update local state
+              // Update local state for UI purposes
               set({
                 locationHistory: [...locationHistory, updatedLocation],
               });
 
-              console.log("📍 Location added to trip:", updatedLocation.id);
+              console.log(
+                "📍 Location will be saved to Supabase:",
+                updatedLocation.id
+              );
             } catch (error) {
-              console.error("❌ Failed to add location to trip:", error);
+              console.error("❌ Failed to process location for trip:", error);
               // Don't throw error to avoid breaking location tracking
             }
           }
-        }, // Get location history for a trip
+        },
+
+        // Get location history for a trip
         getLocationHistory: async (tripId: string) => {
-          try {
-            // Fetch from SQLite database
-            const locationHistory =
-              await TripDatabaseService.getLocationHistory(tripId);
+          console.warn(
+            "⚠️ getLocationHistory is deprecated - locations are now in Supabase"
+          );
 
-            // Update local state with fetched data
-            set({ locationHistory });
+          // For now, return local state only (will be replaced with Supabase integration)
+          // TODO: Implement Supabase fetching with session_id
+          const locationHistory = get().locationHistory.filter(
+            (location) => location.tripId === tripId
+          );
 
-            console.log(
-              `📍 Loaded ${locationHistory.length} location samples for trip:`,
-              tripId
-            );
-            return locationHistory;
-          } catch (error) {
-            console.error("❌ Failed to get location history:", error);
-            // Fallback to local state
-            return get().locationHistory.filter(
-              (location) => location.tripId === tripId
-            );
-          }
+          console.log(
+            `📍 Returning ${locationHistory.length} locations for trip: ${tripId}`
+          );
+          return locationHistory;
         }, // Clear location history
         clearLocationHistory: async (tripId?: string) => {
-          try {
-            if (tripId) {
-              // Clear location history for specific trip in SQLite
-              await TripDatabaseService.clearLocationHistory(tripId);
+          console.warn(
+            "⚠️ clearLocationHistory is deprecated - locations are now in Supabase"
+          );
 
-              // Update local state - remove locations for this trip
-              const filteredHistory = get().locationHistory.filter(
-                (location) => location.tripId !== tripId
-              );
-              set({ locationHistory: filteredHistory });
-
-              console.log("🧹 Location history cleared for trip:", tripId);
-            } else {
-              // Clear all location history
-              set({ locationHistory: [] });
-              console.log("🧹 All location history cleared from local state");
-            }
-          } catch (error) {
-            console.error("❌ Failed to clear location history:", error);
-            // Fallback to local clear
+          // Only clear local state for now
+          // TODO: Implement Supabase cleanup when needed
+          if (tripId) {
+            const filteredHistory = get().locationHistory.filter(
+              (location) => location.tripId !== tripId
+            );
+            set({ locationHistory: filteredHistory });
+            console.log(
+              "🧹 Location history cleared from local state for trip:",
+              tripId
+            );
+          } else {
             set({ locationHistory: [] });
+            console.log("🧹 All location history cleared from local state");
           }
         }, // Clear error
         clearError: () => {
@@ -283,15 +377,9 @@ export const useTripStore = create<TripState>()(
 
             // Find active trip
             const activeTrip =
-              trips.find((trip) => trip.status === "active") || null;
-
-            // Load location history for active trip
+              trips.find((trip) => trip.status === "active") || null; // Note: Location history loading from SQLite removed
+            // Location history will be fetched from Supabase when needed
             let locationHistory: LocationSample[] = [];
-            if (activeTrip) {
-              locationHistory = await TripDatabaseService.getLocationHistory(
-                activeTrip.id
-              );
-            }
 
             // Update store state
             set({
@@ -317,6 +405,11 @@ export const useTripStore = create<TripState>()(
               isLoading: false,
             });
           }
+        },
+
+        // Check if periodic location sharing is active
+        isPeriodicSharingActive: () => {
+          return periodicLocationSharingService.isPeriodicSharingActive();
         },
       }),
       {
