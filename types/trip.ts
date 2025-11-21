@@ -141,6 +141,7 @@ export interface ContactCreateInput {
   pushToken?: string;
   sharingPolicy: "location" | "alerts" | "all";
   email: string;
+  profileImageUrl?: string;
 }
 
 // Location types

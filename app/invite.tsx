@@ -1,7 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, View, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ContactExists } from "@/components/invite/contact-exists";
@@ -35,6 +35,7 @@ export default function InviteAcceptScreen() {
         fcmToken: (params.fcmToken as string) || undefined,
         message: (params.message as string) || undefined,
         receiverEmail: (params.receiverEmail as string) || "",
+        profileImageUrl: (params.profileImageUrl as string) || "",
       };
     }
     return null;
@@ -45,6 +46,7 @@ export default function InviteAcceptScreen() {
     params.fcmToken,
     params.message,
     params.receiverEmail,
+    params.profileImageUrl,
   ]);
 
   // Check if the invitation is valid
@@ -116,7 +118,8 @@ export default function InviteAcceptScreen() {
         phone: invitationData.phone,
         email: invitationData.email,
         pushToken: invitationData.fcmToken,
-        sharingPolicy: "alerts",
+        sharingPolicy: "all",
+        profileImageUrl: invitationData.profileImageUrl,
       });
 
       Alert.alert(
@@ -212,7 +215,14 @@ export default function InviteAcceptScreen() {
           >
             <View style={styles.senderInfo}>
               <View style={styles.avatarContainer}>
-                <MaterialIcons name="person" size={40} color="#666" />
+                {invitationData.profileImageUrl ? (
+                  <Image
+                    source={{ uri: invitationData.profileImageUrl }}
+                    style={styles.avatar}
+                  />
+                ) : (
+                  <MaterialIcons name="person" size={40} color="#666" />
+                )}
               </View>
               <View style={styles.senderDetails}>
                 <ThemedText style={styles.senderName}>
@@ -468,4 +478,5 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginBottom: 20,
   },
+  avatar: { width: 60, height: 60, borderRadius: 30 },
 });

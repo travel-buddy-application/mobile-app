@@ -3,6 +3,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { uploadProfileImage } from "@/services/image-upload.service";
 import { useAuthStore, usePermissionsStore } from "@/stores";
 import { UserCreateInput } from "@/types/user";
 import {
@@ -12,9 +13,11 @@ import {
 } from "@/utils/validation";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Switch,
@@ -31,6 +34,7 @@ export const ProfileScreen: React.FC = () => {
     requestNotificationPermission,
   } = usePermissionsStore();
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [editedUser, setEditedUser] = useState({
     name: user?.name || "",
     phone: user?.phone || "",
@@ -156,6 +160,114 @@ export const ProfileScreen: React.FC = () => {
     }
   };
 
+  const handleImageUpload = async () => {
+    try {
+      // Request permission to access media library
+      const permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert(
+          "Permission Required",
+          "Permission to access camera roll is required to change profile picture."
+        );
+        return;
+      }
+
+      // Show image picker options
+      Alert.alert(
+        "Select Image",
+        "Choose how you'd like to select your profile picture",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Camera",
+            onPress: () => pickImageFromCamera(),
+          },
+          {
+            text: "Gallery",
+            onPress: () => pickImageFromGallery(),
+          },
+        ]
+      );
+    } catch (error) {
+      console.error("Failed to handle image upload:", error);
+      Alert.alert("Error", "Failed to access image picker.");
+    }
+  };
+
+  const pickImageFromCamera = async () => {
+    try {
+      const cameraPermission =
+        await ImagePicker.requestCameraPermissionsAsync();
+      if (!cameraPermission.granted) {
+        Alert.alert("Permission Required", "Camera permission is required.");
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadAndSaveImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Failed to pick image from camera:", error);
+      Alert.alert("Error", "Failed to capture image.");
+    }
+  };
+
+  const pickImageFromGallery = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadAndSaveImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Failed to pick image from gallery:", error);
+      Alert.alert("Error", "Failed to select image.");
+    }
+  };
+
+  const uploadAndSaveImage = async (imageUri: string) => {
+    if (!user?.id) {
+      Alert.alert("Error", "User ID not found");
+      return;
+    }
+
+    setIsUploadingImage(true);
+
+    try {
+      // Upload image to Supabase
+      const uploadResult = await uploadProfileImage(imageUri, user.id);
+
+      if (uploadResult.success && uploadResult.imageUrl) {
+        // Update user profile with new image URL
+        await updateUserProfile({
+          profileImageUrl: uploadResult.imageUrl,
+        });
+
+        Alert.alert("Success", "Profile picture updated successfully!");
+      } else {
+        Alert.alert("Error", uploadResult.error || "Failed to upload image");
+      }
+    } catch (error) {
+      console.error("Failed to upload and save image:", error);
+      Alert.alert("Error", "Failed to update profile picture");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -167,17 +279,44 @@ export const ProfileScreen: React.FC = () => {
               { backgroundColor: cardBackgroundColor },
             ]}
           >
-            <MaterialIcons
-              name="person"
-              size={56}
-              color={textColor}
-              style={{
-                borderColor: borderColor,
-                borderWidth: 1,
-                borderRadius: 40,
-                padding: 8,
-              }}
-            />
+            {user?.profileImageUrl ? (
+              <Image
+                source={{ uri: user.profileImageUrl }}
+                style={styles.profileImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <MaterialIcons
+                name="person"
+                size={56}
+                color={textColor}
+                style={{
+                  borderColor: borderColor,
+                  borderWidth: 1,
+                  borderRadius: 40,
+                  padding: 8,
+                }}
+              />
+            )}
+
+            {/* Pencil Edit Icon */}
+            <TouchableOpacity
+              onPress={handleImageUpload}
+              style={[
+                styles.editImageButton,
+                {
+                  backgroundColor: backgroundColor,
+                  opacity: isUploadingImage ? 0.6 : 1,
+                },
+              ]}
+              disabled={isUploadingImage}
+            >
+              <MaterialIcons
+                name={isUploadingImage ? "hourglass-empty" : "edit"}
+                size={16}
+                color="white"
+              />
+            </TouchableOpacity>
           </ThemedView>
           <ThemedText type="title" style={styles.title}>
             Profile
@@ -458,6 +597,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 15,
+    position: "relative",
+  },
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  editImageButton: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "white",
   },
   title: {
     fontSize: 24,

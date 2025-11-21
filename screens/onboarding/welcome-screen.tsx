@@ -1,6 +1,7 @@
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { errorColor } from "@/constants/theme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { useAuthStore } from "@/stores";
 import { UserCreateInput } from "@/types/user";
@@ -17,6 +18,7 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -108,7 +110,11 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
         >
           {/* Header */}
           <ThemedView style={styles.header}>
-            <ThemedText style={styles.emoji}>🧳</ThemedText>
+            <Image
+              source={require("@/assets/images/icon.png")}
+              style={styles.appIcon}
+              resizeMode="contain"
+            />
             <ThemedText type="title" style={styles.title}>
               Welcome to Travel Buddy
             </ThemedText>
@@ -241,10 +247,10 @@ const styles = StyleSheet.create({
     marginTop: 50,
     marginBottom: 32,
   },
-  emoji: {
-    padding: 30,
-    fontSize: 48,
-    marginBottom: 16,
+  appIcon: {
+    width: 68,
+    height: 68,
+    marginRight: 12,
   },
   title: {
     fontSize: 28,
@@ -284,11 +290,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   inputError: {
-    borderColor: "#ff4757",
+    borderColor: errorColor,
     // backgroundColor: "#fff5f5",
   },
   errorText: {
-    color: "#ff4757",
+    color: errorColor,
     fontSize: 14,
     marginTop: 4,
   },

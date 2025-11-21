@@ -5,6 +5,7 @@ export interface User {
   name: string;
   phone: string;
   email?: string;
+  profileImageUrl?: string;
   emergencyContacts: EmergencyContact[];
   createdAt: string;
   updatedAt: string;

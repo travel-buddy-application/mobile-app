@@ -9,6 +9,7 @@ const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 export const successColor = '#28a745';
 export const errorColor = '#dc3545';
+export const defaultButtonColor = "#2196F3";
 
 export const Colors = {
   light: {
