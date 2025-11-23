@@ -473,34 +473,14 @@ export class FCMService {
           });
         }
       );
-    }
-
-    // Show alert with option to view live location
+    } // Show alert notification
     Alert.alert(
       "🚀 Trip Started",
       data.body ||
         `${
           data.userName || "Someone"
-        } has started a safety trip. You can view their live location anytime.`,
-      [
-        { text: "OK", style: "default" },
-        {
-          text: "View Live Location",
-          onPress: async () => {
-            if (data.sessionId && data.userId) {
-              await this.fetchAndOpenLatestLocation(
-                data.sessionId,
-                data.userName
-              );
-            } else {
-              Alert.alert(
-                "Error",
-                "Cannot view location - session information missing"
-              );
-            }
-          },
-        },
-      ]
+        } has started a safety trip. You can view their location in the "Received Safety Trips" section.`,
+      [{ text: "OK", style: "default" }]
     );
   }
 
