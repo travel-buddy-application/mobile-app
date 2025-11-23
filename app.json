@@ -60,7 +60,13 @@
         }
       ],
       "expo-web-browser",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-maps",
+        {
+          "googleMapsApiKey": "AIzaSyBhBR37wxPKTKjH3zpwLr5OnjdzBFyCy6s"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

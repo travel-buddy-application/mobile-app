@@ -1,6 +1,7 @@
 // Received Trips Component for Travel Buddy
 // Shows trips received from other users and allows fetching their locations
 
+import { LiveLocationMap } from "@/components/live-location-map";
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -10,14 +11,7 @@ import { supabaseLocationService } from "@/services/supabase/location.service";
 import { useReceivedTripsSelectors } from "@/stores/received-trips/received-trips.store";
 import { MaterialIcons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import {
-  Alert,
-  Linking,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface ReceivedTripsProps {
   onLocationFetch?: (sessionId: string) => void;
@@ -34,6 +28,14 @@ export const ReceivedTripsSection: React.FC<ReceivedTripsProps> = ({
   } = useReceivedTripsSelectors();
   const [loadingSession, setLoadingSession] = useState<string | null>(null);
 
+  // State for live location map modal
+  const [showLocationMap, setShowLocationMap] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<{
+    sessionId: string;
+    userName: string;
+    isActive: boolean;
+  } | null>(null);
+
   // Theme colors
   const cardBackgroundColor = useThemeColor({}, "cardBackgroundColor");
   const borderColor = useThemeColor({}, "cardBorderColor");
@@ -43,114 +45,69 @@ export const ReceivedTripsSection: React.FC<ReceivedTripsProps> = ({
   useEffect(() => {
     clearExpiredSessions();
   }, [clearExpiredSessions]);
-
-  const openMaps = async (
-    lat: number,
-    lng: number,
-    label?: string
-  ): Promise<void> => {
-    const latStr = lat.toString();
-    const lngStr = lng.toString();
-
-    // Universal web link (works everywhere)
-    const googleWeb = `https://www.google.com/maps/search/?api=1&query=${latStr},${lngStr}${
-      label ? `&query_place_id=${encodeURIComponent(label)}` : ""
-    }`;
-
-    // Android intents (prefer the app)
-    const androidGeo = `geo:${latStr},${lngStr}?q=${latStr},${lngStr}${
-      label ? `(${encodeURIComponent(label)})` : ""
-    }`;
-    const androidNav = `google.navigation:q=${latStr},${lngStr}`;
-
-    // iOS Google Maps URL scheme
-    const iosGmaps = `comgooglemaps://?q=${latStr},${lngStr}${
-      label ? `(${encodeURIComponent(label)})` : ""
-    }&zoom=16`;
-
-    // iOS Apple Maps fallback
-    const iosApple = `http://maps.apple.com/?ll=${latStr},${lngStr}${
-      label ? `&q=${encodeURIComponent(label)}` : ""
-    }`;
-
-    try {
-      if (Platform.OS === "android") {
-        const candidates = [androidNav, androidGeo, googleWeb];
-        for (const url of candidates) {
-          if (await Linking.canOpenURL(url)) {
-            console.log(`🗺️ Opening maps with: ${url}`);
-            return await Linking.openURL(url);
-          }
-        }
-      } else {
-        const candidates = [iosGmaps, iosApple, googleWeb];
-        for (const url of candidates) {
-          if (await Linking.canOpenURL(url)) {
-            console.log(`🗺️ Opening maps with: ${url}`);
-            return await Linking.openURL(url);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("❌ Error opening maps:", error);
-      await Linking.openURL(googleWeb);
-    }
-  };
   const handleFetchLocation = async (sessionId: string, userName?: string) => {
     if (loadingSession) return; // Prevent multiple simultaneous requests
 
     // Find the session to check if it's active
     const session = recentSessions.find((s) => s.sessionId === sessionId);
 
-    // If session is inactive, show appropriate message
-    if (session && !session.isActive) {
-      Alert.alert(
-        "Trip Completed",
-        `${
-          userName || "This person"
-        }'s safety trip has ended. Live location sharing is no longer available.`,
-        [{ text: "OK" }]
-      );
+    if (!session) {
+      Alert.alert("Error", "Session not found.");
       return;
     }
 
+    // For active sessions, show the map modal directly
+    if (session.isActive) {
+      setSelectedSession({
+        sessionId: session.sessionId,
+        userName: session.userName || "Unknown User",
+        isActive: session.isActive,
+      });
+      setShowLocationMap(true);
+
+      // Update last fetch time
+      updateSessionLastFetch(sessionId);
+
+      // Call optional callback
+      onLocationFetch?.(sessionId);
+      return;
+    }
+
+    // For inactive sessions, check if there's any location data available
     setLoadingSession(sessionId);
 
     try {
-      console.log("📍 Fetching latest location for session:", sessionId);
+      console.log(
+        "📍 Checking location availability for ended trip:",
+        sessionId
+      );
 
       const latestLocation = await supabaseLocationService.getLatestLocation(
         sessionId
       );
 
       if (latestLocation) {
-        console.log("✅ Latest location found:", latestLocation);
+        console.log("✅ Last location found for ended trip:", latestLocation);
 
         // Update last fetch time
         updateSessionLastFetch(sessionId);
 
-        // Open in maps
-        await openMaps(
-          latestLocation.lat,
-          latestLocation.lng,
-          `${userName || "Safety Trip"} - ${
-            session?.isActive ? "Live Location" : "Last Known Location"
-          }`
-        );
+        // Show the map modal with the last known location
+        setSelectedSession({
+          sessionId: session.sessionId,
+          userName: session.userName || "Unknown User",
+          isActive: false,
+        });
+        setShowLocationMap(true);
 
         // Call optional callback
         onLocationFetch?.(sessionId);
       } else {
-        const isActive = session?.isActive ?? true;
         Alert.alert(
           "No Location Available",
-          isActive
-            ? `${
-                userName || "The person"
-              } hasn't shared their location yet. Please try again later.`
-            : `${
-                userName || "The person"
-              }'s trip has ended. No location data is available.`,
+          `${
+            userName || "This person"
+          }'s trip has ended and no location data is available.`,
           [{ text: "OK" }]
         );
       }
@@ -280,11 +237,11 @@ export const ReceivedTripsSection: React.FC<ReceivedTripsProps> = ({
                   {session.tripTitle || "Safety Trip"}
                 </ThemedText>
                 <ThemedText style={styles.sessionTime}>
-                  {session.isActive ? "Started" : "Ended"}{" "}
+                  {session.isActive ? "Started" : "Ended"}
                   {formatTimeAgo(session.receivedAt)}
                   {session.lastLocationFetch && (
                     <ThemedText style={styles.lastFetch}>
-                      {" • "}Last viewed{" "}
+                      {" • "}Last viewed
                       {formatTimeAgo(session.lastLocationFetch)}
                     </ThemedText>
                   )}
@@ -317,6 +274,19 @@ export const ReceivedTripsSection: React.FC<ReceivedTripsProps> = ({
       <ThemedText style={styles.helpText}>
         💡 Tap &quot;View Location&quot; to see their current locations.
       </ThemedText>
+      {/* Live Location Map Modal */}
+      {selectedSession && (
+        <LiveLocationMap
+          visible={showLocationMap}
+          sessionId={selectedSession.sessionId}
+          userName={selectedSession.userName}
+          isActive={selectedSession.isActive}
+          onClose={() => {
+            setShowLocationMap(false);
+            setSelectedSession(null);
+          }}
+        />
+      )}
     </ThemedView>
   );
 };
