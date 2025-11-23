@@ -64,7 +64,7 @@
       [
         "expo-maps",
         {
-          "googleMapsApiKey": "AIzaSyBhBR37wxPKTKjH3zpwLr5OnjdzBFyCy6s"
+          "googleMapsApiKey": "$GOOGLE_MAPS_API_KEY"
         }
       ]
     ],
