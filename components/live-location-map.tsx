@@ -365,6 +365,7 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flex: 1,
+    backgroundColor: "transparent",
   },
   title: {
     fontSize: 18,
@@ -442,6 +443,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
+    backgroundColor: "transparent",
   },
   infoLabel: {
     fontSize: 14,
@@ -455,6 +457,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 15,
+    backgroundColor: "transparent",
   },
   refreshButton: {
     flex: 1,
