@@ -145,10 +145,10 @@ export const useLocationStore = create<LocationStoreState>()(
                 sessionData.sessionId,
                 sessionData.userId
               );
-              console.log(
-                "✅ Location saved to Supabase via session:",
-                sessionData.sessionId
-              );
+              // console.log(
+              //   "✅ Location saved to Supabase via session:",
+              //   sessionData.sessionId
+              // );
             } else {
               console.warn("⚠️ No active session for location saving");
             }
@@ -158,11 +158,11 @@ export const useLocationStore = create<LocationStoreState>()(
           }
         }
 
-        console.log(`📍 Location updated (${validation.quality} quality):`, {
-          lat: location.lat.toFixed(6),
-          lng: location.lng.toFixed(6),
-          accuracy: `${location.accuracy}m`,
-        });
+        // console.log(`📍 Location updated (${validation.quality} quality):`, {
+        //   lat: location.lat.toFixed(6),
+        //   lng: location.lng.toFixed(6),
+        //   accuracy: `${location.accuracy}m`,
+        // });
       },
 
       // Request location permissions

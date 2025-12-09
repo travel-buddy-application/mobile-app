@@ -52,7 +52,7 @@ export class TripLocationIntegrationService {
         console.warn("⚠️ Failed to stop location tracking:", locationError);
         // Continue with trip end even if location stop fails
       }
-
+      console.log("🚀 Location tracking stopped", tripId);
       // Then end the trip
       await tripStore.endTrip(tripId);
       console.log("🏁 Trip ended with location tracking stopped");

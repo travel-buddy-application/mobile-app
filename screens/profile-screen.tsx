@@ -423,6 +423,7 @@ export const ProfileScreen: React.FC = () => {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   placeholderTextColor={placeholderTextColor}
+                  editable={false}
                 />
                 {errors.email && (
                   <ThemedText style={styles.errorText}>
@@ -441,7 +442,7 @@ export const ProfileScreen: React.FC = () => {
                   title="Cancel"
                   onPress={handleCancelEdit}
                   style={styles.cancelButton}
-                  type="default"
+                  type="cancel"
                 />
                 <ThemedButton
                   title="Save"
@@ -560,7 +561,7 @@ export const ProfileScreen: React.FC = () => {
           <ThemedButton
             title="🔄 Reset App Data"
             onPress={handleLogout}
-            style={styles.logoutButton}
+            type="delete"
             textStyle={styles.logoutButtonText}
           />
         </ThemedView>
@@ -710,9 +711,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginTop: 2,
     maxWidth: 200,
-  },
-  logoutButton: {
-    backgroundColor: "#F44336",
   },
   logoutButtonText: {
     color: "white",

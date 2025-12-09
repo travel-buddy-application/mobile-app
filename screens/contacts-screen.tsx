@@ -36,6 +36,7 @@ export const ContactsScreen: React.FC = () => {
           onPress={() => setShowAddForm(true)}
           style={styles.addButton}
           textStyle={styles.addButtonText}
+          type="add"
         />
 
         {/* Add Contact Form */}

@@ -46,13 +46,13 @@ export class SupabaseLocationService {
       const effectiveUserId =
         userId || useAuthStore.getState().user?.id || "anonymous-user";
 
-      console.log("📍 Saving location to Supabase:", {
-        locationId: location.id,
-        sessionId,
-        userId: effectiveUserId,
-        coordinates: `${location.lat}, ${location.lng}`,
-        accuracy: location.accuracy,
-      });
+      // console.log("📍 Saving location to Supabase:", {
+      //   locationId: location.id,
+      //   sessionId,
+      //   userId: effectiveUserId,
+      //   coordinates: `${location.lat}, ${location.lng}`,
+      //   accuracy: location.accuracy,
+      // });
 
       const locationData: LocationInsert = {
         user_id: effectiveUserId,

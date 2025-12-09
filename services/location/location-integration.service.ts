@@ -79,12 +79,12 @@ export class LocationIntegrationService {
     userId: string
   ): Promise<void> {
     try {
-      console.log("📍 Location will be saved to Supabase:", {
-        locationId: location.id,
-        sessionId,
-        userId,
-        coordinates: `${location.lat}, ${location.lng}`,
-      }); // Use the new Supabase location service
+      // console.log("📍 Location will be saved to Supabase:", {
+      //   locationId: location.id,
+      //   sessionId,
+      //   userId,
+      //   coordinates: `${location.lat}, ${location.lng}`,
+      // }); // Use the new Supabase location service
       const { supabaseLocationService } = await import(
         "../supabase/location.service"
       );
@@ -96,10 +96,10 @@ export class LocationIntegrationService {
       );
 
       if (savedLocation) {
-        console.log(
-          "✅ Location saved to Supabase successfully:",
-          savedLocation.supabaseId
-        );
+        // console.log(
+        //   "✅ Location saved to Supabase successfully:",
+        //   savedLocation.supabaseId
+        // );
       } else {
         throw new Error("Failed to save location to Supabase");
       }

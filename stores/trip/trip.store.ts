@@ -134,6 +134,7 @@ export const useTripStore = create<TripState>()(
           try {
             const { activeTrip, trips } = get();
             const targetTripId = tripId || activeTrip?.id;
+            console.log("🚀 Ending trip:", targetTripId);
 
             if (!targetTripId) {
               throw new Error("No active trip to end");
@@ -314,10 +315,10 @@ export const useTripStore = create<TripState>()(
                 locationHistory: [...locationHistory, updatedLocation],
               });
 
-              console.log(
-                "📍 Location will be saved to Supabase:",
-                updatedLocation.id
-              );
+              // console.log(
+              //   "📍 Location will be saved to Supabase:",
+              //   updatedLocation.id
+              // );
             } catch (error) {
               console.error("❌ Failed to process location for trip:", error);
               // Don't throw error to avoid breaking location tracking

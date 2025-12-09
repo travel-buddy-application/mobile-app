@@ -32,7 +32,7 @@ export class PeriodicLocationSharingService {
       return;
     }
 
-    console.log("🚀 Starting periodic location sharing for trip:", trip.title);
+    // console.log("🚀 Starting periodic location sharing for trip:", trip.title);
     this.isSharing = true;
 
     // Send trip started notification immediately
