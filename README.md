@@ -8,8 +8,8 @@ Built with React Native, TypeScript, and Expo.
 
 - **🛡️ Safe Travel**: Start protected trips with safety monitoring
 - **📍 Location Sharing**: Real-time location sharing with emergency contacts
-- **⚠️ Risk Detection**: Smart monitoring for route deviations and inactivity
-- **🆘 Emergency SOS**: Instant alert system with SMS and push notifications
+- **⚠️ Risk Detection**: Smart monitoring for inactivity
+- **🆘 Emergency SOS**: Instant alert system with push notifications
 - **🔒 Privacy First**: Encrypted storage, data stays on device
 - **📱 Clean UI**: Modern, intuitive interface focused on safety
 
@@ -31,35 +31,62 @@ Built with React Native, TypeScript, and Expo.
    - Scan QR code with Expo Go app
    - Or press `a` for Android emulator
 
-In the output, you'll find options to open the app in a
+## 🏗️ Build
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Build the Android release locally or via EAS (Expo Application Services).
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Local Android (Gradle)
 
-## Get a fresh project
-
-When you're ready, run:
+- From Windows PowerShell (project root):
 
 ```bash
-npm run reset-project
+cd android
+.\gradlew.bat assembleRelease
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- From macOS/Linux (project root):
 
-## Learn more
+```bash
+cd android
+./gradlew assembleRelease
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+- The generated APK will be at:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```text
+android/app/build/outputs/apk/release/app-release.apk
+```
 
-## Join the community
+- Notes:
+   - Ensure signing config / keystore is set in `android/app/build.gradle` or provided via Gradle properties.
+   - If you need an AAB instead, run `assembleRelease` for the `bundle` task (e.g., `./gradlew bundleRelease`).
 
-Join our community of developers creating universal apps.
+Build with EAS
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- Install and login to EAS CLI if you haven't:
+
+```bash
+npm install -g eas-cli
+eas login
+```
+
+- Create or confirm `eas.json` configuration, then build:
+
+```bash
+eas build --platform android
+# or use a named profile (example: production)
+eas build --platform android --profile production
+```
+
+- For iOS builds use `eas build --platform ios` (Apple developer credentials required).
+
+See Expo/EAS docs for configuring credentials, signing, and build profiles.
+
+
+
+## 📖 User Guide
+
+See the step-by-step user instructions in the [User Guide](USER_GUIDE.md).
+
+
+

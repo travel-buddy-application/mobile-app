@@ -1,11 +1,7 @@
-// Supabase Location Service for Travel Buddy
-// Handles location data storage and retrieval from Supabase database
-
 import { useAuthStore } from "@/stores/auth/auth.store";
 import { LocationSample } from "@/types/trip";
 import { Database, supabaseClient } from "./client";
 
-// Type definitions for location data
 type LocationRow = Database["public"]["Tables"]["location"]["Row"];
 type LocationInsert = Database["public"]["Tables"]["location"]["Insert"];
 
@@ -42,17 +38,8 @@ export class SupabaseLocationService {
     userId?: string
   ): Promise<SupabaseLocationSample | null> {
     try {
-      // Get user ID from auth store if not provided
       const effectiveUserId =
         userId || useAuthStore.getState().user?.id || "anonymous-user";
-
-      console.log("📍 Saving location to Supabase:", {
-        locationId: location.id,
-        sessionId,
-        userId: effectiveUserId,
-        coordinates: `${location.lat}, ${location.lng}`,
-        accuracy: location.accuracy,
-      });
 
       const locationData: LocationInsert = {
         user_id: effectiveUserId,
@@ -74,7 +61,6 @@ export class SupabaseLocationService {
 
       console.log("✅ Location saved to Supabase:", data.id);
 
-      // Return enhanced location sample
       const supabaseLocation: SupabaseLocationSample = {
         ...location,
         supabaseId: data.id,
@@ -181,18 +167,17 @@ export class SupabaseLocationService {
         `✅ Fetched ${data.length} locations for session: ${sessionId}`
       );
 
-      // Convert Supabase rows to LocationSample format
       const locations: SupabaseLocationSample[] = data.map(
         (row: LocationRow) => ({
           id: `supabase_${row.id}`,
           supabaseId: row.id,
-          tripId: "", // Not used in new architecture
+          tripId: "", 
           sessionId: row.session_id || "",
           userId: row.user_id || "",
           timestamp: new Date(row.created_at).getTime(),
           lat: parseFloat(row.lat || "0"),
           lng: parseFloat(row.lng || "0"),
-          accuracy: 10, // Default accuracy since not stored
+          accuracy: 10,
           source: "gps" as const,
           createdAt: row.created_at,
         })
@@ -257,7 +242,6 @@ export class SupabaseLocationService {
 
       console.log(`✅ Fetched ${data.length} locations for user: ${userId}`);
 
-      // Convert to LocationSample format
       const locations: SupabaseLocationSample[] = data.map(
         (row: LocationRow) => ({
           id: `supabase_${row.id}`,

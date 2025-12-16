@@ -5,7 +5,6 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 interface LocationStoreState extends LocationState {
-  // Actions
   startTracking: (tripId?: string) => Promise<void>;
   stopTracking: () => void;
   updateLocation: (location: LocationSample, tripId?: string) => Promise<void>;
@@ -14,7 +13,6 @@ interface LocationStoreState extends LocationState {
   setServiceStatus: (status: LocationState["serviceStatus"]) => void;
   clearLocation: () => void;
 
-  // Google Maps integration
   generateShareableUrl: (location?: LocationSample) => string | null;
   generateLocationMessage: (
     tripName?: string,
@@ -30,13 +28,12 @@ interface LocationStoreState extends LocationState {
 export const useLocationStore = create<LocationStoreState>()(
   devtools(
     (set, get) => ({
-      // Initial state
       currentLocation: null,
       isTracking: false,
       accuracy: 0,
       serviceStatus: "stopped",
       lastUpdate: 0,
-      permissionStatus: "undetermined", // Start location tracking with optional trip association
+      permissionStatus: "undetermined",
       startTracking: async (tripId?: string) => {
         const { permissionStatus } = get();
 
@@ -51,7 +48,6 @@ export const useLocationStore = create<LocationStoreState>()(
         });
 
         try {
-          // Start watching position
           const subscription = await Location.watchPositionAsync(
             {
               accuracy: Location.Accuracy.BestForNavigation,
@@ -71,14 +67,12 @@ export const useLocationStore = create<LocationStoreState>()(
                 createdAt: new Date().toISOString(),
               };
 
-              // Update location and save to database if trip is associated
               await get().updateLocation(locationSample, tripId);
             }
           );
 
           set({ serviceStatus: "running" });
 
-          // Store subscription for cleanup
           (get() as any).locationSubscription = subscription;
 
           console.log(
@@ -94,7 +88,6 @@ export const useLocationStore = create<LocationStoreState>()(
         }
       },
 
-      // Stop location tracking
       stopTracking: () => {
         const subscription = (get() as any).locationSubscription;
         if (subscription) {
@@ -106,9 +99,8 @@ export const useLocationStore = create<LocationStoreState>()(
           isTracking: false,
           currentLocation: null,
         });
-      }, // Update current location and optionally save to database
+      }, 
       updateLocation: async (location: LocationSample, tripId?: string) => {
-        // Validate location quality
         const validation =
           LocationIntegrationService.validateLocationQuality(location);
 
@@ -119,14 +111,13 @@ export const useLocationStore = create<LocationStoreState>()(
 
         if (validation.warnings.length > 0) {
           console.warn("⚠️ Location quality issues:", validation.warnings);
-        } // Update local state
+        } 
         set({
           currentLocation: location,
           lastUpdate: Date.now(),
           accuracy: location.accuracy,
         });
 
-        // Save to Supabase if trip ID is provided and session is active
         if (tripId || location.tripId) {
           try {
             const { locationSessionManager } = await import(
@@ -145,27 +136,15 @@ export const useLocationStore = create<LocationStoreState>()(
                 sessionData.sessionId,
                 sessionData.userId
               );
-              console.log(
-                "✅ Location saved to Supabase via session:",
-                sessionData.sessionId
-              );
             } else {
               console.warn("⚠️ No active session for location saving");
             }
           } catch (error) {
             console.warn("⚠️ Failed to save location to Supabase:", error);
-            // Don't throw - location tracking should continue
           }
         }
-
-        console.log(`📍 Location updated (${validation.quality} quality):`, {
-          lat: location.lat.toFixed(6),
-          lng: location.lng.toFixed(6),
-          accuracy: `${location.accuracy}m`,
-        });
       },
 
-      // Request location permissions
       requestPermissions: async () => {
         try {
           const { status: foregroundStatus } =
@@ -193,7 +172,6 @@ export const useLocationStore = create<LocationStoreState>()(
         }
       },
 
-      // Get current position once
       getCurrentPosition: async () => {
         try {
           const location = await Location.getCurrentPositionAsync({
@@ -219,10 +197,9 @@ export const useLocationStore = create<LocationStoreState>()(
         }
       },
 
-      // Set service status
       setServiceStatus: (status: LocationState["serviceStatus"]) => {
         set({ serviceStatus: status });
-      }, // Clear location data
+      }, 
       clearLocation: () => {
         set({
           currentLocation: null,
@@ -231,7 +208,6 @@ export const useLocationStore = create<LocationStoreState>()(
         });
       },
 
-      // Generate shareable Google Maps URL for current location
       generateShareableUrl: (location?: LocationSample) => {
         const targetLocation = location || get().currentLocation;
         if (!targetLocation) return null;
@@ -239,7 +215,6 @@ export const useLocationStore = create<LocationStoreState>()(
         return LocationIntegrationService.generateGoogleMapsUrl(targetLocation);
       },
 
-      // Generate location share message
       generateLocationMessage: (tripName?: string, userName?: string) => {
         const { currentLocation } = get();
         if (!currentLocation) return null;
@@ -251,7 +226,6 @@ export const useLocationStore = create<LocationStoreState>()(
         );
       },
 
-      // Generate emergency alert message
       generateEmergencyAlert: (
         tripName?: string,
         userName?: string,

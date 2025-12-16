@@ -1,6 +1,3 @@
-// Received Trips Store for Travel Buddy
-// Manages trip sessions received from other users via notifications
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -66,7 +63,6 @@ export const useReceivedTripsStore = create<ReceivedTripsState>()(
             sessionData.sessionId
           );
         } else {
-          // Add new session
           updatedSessions = [newSession, ...sessions];
           console.log("📱 Added new received session:", sessionData.sessionId);
         }
@@ -74,7 +70,6 @@ export const useReceivedTripsStore = create<ReceivedTripsState>()(
         set({ receivedSessions: updatedSessions });
       },
 
-      // Update when location is fetched
       updateSessionLastFetch: (sessionId) => {
         const sessions = get().receivedSessions;
         const updatedSessions = sessions.map((session) =>
@@ -87,7 +82,6 @@ export const useReceivedTripsStore = create<ReceivedTripsState>()(
         console.log("📍 Updated last fetch time for session:", sessionId);
       },
 
-      // Mark session as inactive (trip ended)
       markSessionInactive: (sessionId) => {
         const sessions = get().receivedSessions;
         const updatedSessions = sessions.map((session) =>
@@ -100,7 +94,6 @@ export const useReceivedTripsStore = create<ReceivedTripsState>()(
         console.log("🛑 Marked session as inactive:", sessionId);
       },
 
-      // Remove session entirely
       removeSession: (sessionId) => {
         const sessions = get().receivedSessions;
         const updatedSessions = sessions.filter(
@@ -111,7 +104,6 @@ export const useReceivedTripsStore = create<ReceivedTripsState>()(
         console.log("🗑️ Removed session:", sessionId);
       },
 
-      // Clear expired sessions (older than 24 hours and inactive)
       clearExpiredSessions: () => {
         const now = new Date();
         const twentyFourHoursAgo = new Date(
@@ -138,7 +130,6 @@ export const useReceivedTripsStore = create<ReceivedTripsState>()(
         }
       },
 
-      // Clear error state
       clearError: () => {
         set({ error: null });
       },
@@ -153,7 +144,6 @@ export const useReceivedTripsStore = create<ReceivedTripsState>()(
   )
 );
 
-// Selectors for easier data access
 export const useReceivedTripsSelectors = () => {
   const store = useReceivedTripsStore();
 

@@ -25,6 +25,9 @@ export const Colors = {
     successButtonText: "#fff",
     deleteButtonBackground: errorColor,
     deleteButtonText: "#fff",
+    addButtonBackground: "#4CAF50",
+    disableButtonBackground: "#cccccc",
+    secondaryButtonBackground: "#92acb0ff",
 
     // Emergency Contacts
     cardBackgroundColor: "#fff",
@@ -40,12 +43,15 @@ export const Colors = {
     icon: "#9BA1A6",
     tabIconDefault: "#9BA1A6",
     tabIconSelected: tintColorDark,
-    primaryButtonBackground: "#757575",
+    primaryButtonBackground: "#124edaff",
+    secondaryButtonBackground: "#757575",
     primaryButtonText: "#ffffff",
     successButtonBackground: successColor,
     successButtonText: "#fff",
     deleteButtonBackground: errorColor,
     deleteButtonText: "#fff",
+    addButtonBackground: "#4CAF50",
+    disableButtonBackground: "#444444",
 
     // Emergency Contacts
     cardBackgroundColor: "#2a2a2a",

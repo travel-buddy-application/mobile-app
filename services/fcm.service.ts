@@ -18,7 +18,6 @@ import { router } from "expo-router";
 import { Alert, Linking, Platform } from "react-native";
 
 export interface FCMNotificationData {
-  // Legacy type-based notifications
   type?:
     | "emergency"
     | "location_share"
@@ -29,7 +28,6 @@ export interface FCMNotificationData {
     | "open_maps"
     | "trip_started_with_session"
     | "trip_ended_with_session";
-  // Common fields
   tripId?: string;
   contactId?: string;
   userId?: string;
@@ -38,17 +36,14 @@ export interface FCMNotificationData {
   title?: string;
   body?: string;
 
-  // Contact request fields
   senderEmail?: string;
   senderFcmToken?: string;
   senderPushToken?: string;
 
-  // Location data for opening in Google Maps
   latitude?: string;
   longitude?: string;
   locationName?: string;
 
-  // Action-based location fields (cleaner naming)
   lat?: string;
   lng?: string;
   label?: string;
@@ -82,13 +77,10 @@ export class FCMService {
         }),
       });
 
-      // Request permission for notifications
       await this.requestPermission();
 
-      // Set up message handlers
       this.setupMessageHandlers();
 
-      // Handle background notification taps
       this.setupBackgroundMessageHandler();
 
       this.isInitialized = true;
@@ -253,8 +245,6 @@ export class FCMService {
         this.handleTripEndedWithSession(notificationData);
         break;
     }
-    // Handle background processing if needed
-    // This runs when app is in background or killed
   }
   private handleNotificationPress(
     remoteMessage: FirebaseMessagingTypes.RemoteMessage
@@ -264,7 +254,6 @@ export class FCMService {
     console.log("Handling notification press with data:", notificationData);
 
     try {
-      // Handle action-based notifications (modern approach)
       if (
         notificationData.type === "open_maps" &&
         notificationData.lat &&
@@ -278,7 +267,6 @@ export class FCMService {
         return;
       }
 
-      // Handle type-based notifications (legacy approach)
       switch (notificationData.type) {
         case "emergency":
           this.navigateToEmergency(notificationData);
@@ -299,7 +287,6 @@ export class FCMService {
           this.handleTripStartedWithSession(notificationData);
           break;
         default:
-          // Navigate to home or appropriate default screen
           router.push("/(tabs)");
           break;
       }
@@ -317,13 +304,11 @@ export class FCMService {
     }
   }
   private navigateToLocationShare(data: FCMNotificationData): void {
-    // If location coordinates are provided, open in Google Maps
     if (data.latitude && data.longitude) {
       this.openLocationInGoogleMaps(data);
       return;
     }
 
-    // Otherwise, navigate to app with contact info
     if (data.contactId) {
       router.push(`/?contactId=${data.contactId}&action=location` as any);
     } else {
@@ -342,23 +327,19 @@ export class FCMService {
     router.push("/(tabs)/contacts");
   }
   private buildMapsUrls(lat: string, lng: string, label?: string) {
-    // Universal web link (works everywhere)
     const googleWeb = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}${
       label ? `&query_place_id=${encodeURIComponent(label)}` : ""
     }`;
 
-    // Android intents (prefer the app)
     const androidGeo = `geo:${lat},${lng}?q=${lat},${lng}${
       label ? `(${encodeURIComponent(label)})` : ""
     }`;
     const androidNav = `google.navigation:q=${lat},${lng}`;
 
-    // iOS Google Maps URL scheme
     const iosGmaps = `comgooglemaps://?q=${lat},${lng}${
       label ? `(${encodeURIComponent(label)})` : ""
     }&zoom=16`;
 
-    // iOS Apple Maps fallback
     const iosApple = `http://maps.apple.com/?ll=${lat},${lng}${
       label ? `&q=${encodeURIComponent(label)}` : ""
     }`;
@@ -385,7 +366,6 @@ export class FCMService {
     try {
       if (Platform.OS === "android") {
         console.log("🌐 Platform is Android");
-        // Prefer navigation if you want turn-by-turn, then geo, then web
         const candidates = [androidNav, androidGeo, googleWeb];
         for (const url of candidates) {
           console.log(`🔗 Trying URL: ${url}`);
@@ -395,7 +375,6 @@ export class FCMService {
           }
         }
       } else {
-        // iOS: Try Google Maps app, then Apple Maps, then web
         const candidates = [iosGmaps, iosApple, googleWeb];
         for (const url of candidates) {
           if (await Linking.canOpenURL(url)) {
@@ -460,9 +439,7 @@ export class FCMService {
   private handleTripStartedWithSession(data: FCMNotificationData): void {
     console.log("🚀 Handling trip started with session notification:", data);
 
-    // Store the received session for later access
     if (data.sessionId && data.userId) {
-      // Dynamic import to avoid circular dependencies
       import("@/stores/received-trips/received-trips.store").then(
         ({ useReceivedTripsStore }) => {
           useReceivedTripsStore.getState().addReceivedSession({
@@ -473,43 +450,21 @@ export class FCMService {
           });
         }
       );
-    }
-
-    // Show alert with option to view live location
+    } 
     Alert.alert(
       "🚀 Trip Started",
       data.body ||
         `${
           data.userName || "Someone"
-        } has started a safety trip. You can view their live location anytime.`,
-      [
-        { text: "OK", style: "default" },
-        {
-          text: "View Live Location",
-          onPress: async () => {
-            if (data.sessionId && data.userId) {
-              await this.fetchAndOpenLatestLocation(
-                data.sessionId,
-                data.userName
-              );
-            } else {
-              Alert.alert(
-                "Error",
-                "Cannot view location - session information missing"
-              );
-            }
-          },
-        },
-      ]
+        } has started a safety trip. You can view their location in the "Received Safety Trips" section.`,
+      [{ text: "OK", style: "default" }]
     );
   }
 
   private handleTripEndedWithSession(data: FCMNotificationData): void {
     console.log("🏁 Handling trip ended with session notification:", data);
 
-    // Mark the received session as inactive
     if (data.sessionId && data.userId) {
-      // Dynamic import to avoid circular dependencies
       import("@/stores/received-trips/received-trips.store").then(
         ({ useReceivedTripsStore }) => {
           useReceivedTripsStore.getState().markSessionInactive(data.sessionId!);
@@ -518,7 +473,6 @@ export class FCMService {
       );
     }
 
-    // Show notification that trip has ended
     Alert.alert(
       "🏁 Trip Ended",
       data.body ||
@@ -535,7 +489,6 @@ export class FCMService {
   ): Promise<void> {
     try {
       console.log("📍 Fetching latest location for session:", sessionId);
-      // Dynamic import to avoid circular dependencies
       const { supabaseLocationService } = await import(
         "@/services/supabase/location.service"
       );
@@ -574,7 +527,7 @@ export class FCMService {
     try {
       const messaging = getMessaging();
       const token = await getToken(messaging);
-      console.log("🔑 FCM Token:", token);
+      console.log("FCM Token:", token);
       return token;
     } catch (error) {
       console.error("❌ Error getting FCM token:", error);
@@ -591,7 +544,7 @@ export class FCMService {
     try {
       const messaging = getMessaging();
       await subscribeToTopic(messaging, topic);
-      console.log(`✅ Subscribed to topic: ${topic}`);
+      console.log(` Subscribed to topic: ${topic}`);
     } catch (error) {
       console.error(`❌ Error subscribing to topic ${topic}:`, error);
     }
@@ -601,7 +554,7 @@ export class FCMService {
     try {
       const messaging = getMessaging();
       await unsubscribeFromTopic(messaging, topic);
-      console.log(`✅ Unsubscribed from topic: ${topic}`);
+      console.log(` Unsubscribed from topic: ${topic}`);
     } catch (error) {
       console.error(`❌ Error unsubscribing from topic ${topic}:`, error);
     }

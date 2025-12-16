@@ -159,6 +159,7 @@ export const PermissionsScreen: React.FC<PermissionsScreenProps> = ({
             disabled={isRequestingPermissions}
             style={styles.grantButton}
             textStyle={styles.grantButtonText}
+            type="add"
           />
           <ThemedText style={styles.infoText}>
             You can modify these permissions later in your device settings

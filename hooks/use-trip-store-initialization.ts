@@ -1,13 +1,8 @@
-/**
- * Hook for initializing trip store with SQLite data
- * Part of Section 2: Trip Store Integration
- */
-
 import { useTripStore } from "@/stores/trip/trip.store";
 import { useEffect, useState } from "react";
 
 interface UseTripStoreInitializationOptions {
-  enabled?: boolean; // Only initialize when enabled (e.g., after database is ready)
+  enabled?: boolean;
 }
 
 export const useTripStoreInitialization = (

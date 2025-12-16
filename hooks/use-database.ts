@@ -11,7 +11,6 @@ export const useDatabase = () => {
   const [error, setError] = useState<string | null>(null);
   const [dbInfo, setDbInfo] = useState<any>(null);
 
-  // Get database info
   const refreshDatabaseInfo = async () => {
     try {
       setIsLoading(true);
@@ -25,7 +24,6 @@ export const useDatabase = () => {
     }
   };
 
-  // Run database health check
   const runHealthCheck = async () => {
     try {
       setIsLoading(true);
@@ -42,12 +40,11 @@ export const useDatabase = () => {
     }
   };
 
-  // Clear all database data
   const clearAllData = async () => {
     try {
       setIsLoading(true);
       await databaseService.clearAllData();
-      await refreshDatabaseInfo(); // Refresh info after clearing
+      await refreshDatabaseInfo(); 
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Clear data failed");
@@ -56,7 +53,6 @@ export const useDatabase = () => {
     }
   };
 
-  // Initialize on mount
   useEffect(() => {
     const initDatabase = async () => {
       try {
@@ -75,7 +71,6 @@ export const useDatabase = () => {
     isLoading,
     error,
     dbInfo,
-    // Actions
     refreshDatabaseInfo,
     runHealthCheck,
     clearAllData,

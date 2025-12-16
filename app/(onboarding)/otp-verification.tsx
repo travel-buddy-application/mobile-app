@@ -13,7 +13,7 @@ export default function OTPVerificationRoute() {
   };
 
   const handleBack = () => {
-    router.back();
+    router.replace("/(onboarding)/welcome");
   };
 
   if (!user?.email) {

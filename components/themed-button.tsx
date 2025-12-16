@@ -11,7 +11,7 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 
 export type ThemedButtonProps = {
   title: string;
-  type?: "default" | "success" | "delete";
+  type?: "default" | "success" | "delete" | "add" | "cancel";
   onPress?: () => void;
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
@@ -34,9 +34,13 @@ export function ThemedButton({
       ? "successButtonBackground"
       : type === "delete"
       ? "deleteButtonBackground"
+      : type === "add"
+      ? "addButtonBackground"
+      : type === "cancel"
+      ? "secondaryButtonBackground"
       : "primaryButtonBackground"
   );
-
+  const disabledBackgroundColor = useThemeColor({}, "disableButtonBackground");
   // Get theme-aware text color based on button type
   const textColor = useThemeColor(
     {},
@@ -46,12 +50,13 @@ export function ThemedButton({
       ? "deleteButtonText"
       : "primaryButtonText"
   );
-
   return (
     <TouchableOpacity
       style={[
         styles.button,
-        { backgroundColor: disabled ? "#cccccc" : backgroundColor },
+        {
+          backgroundColor: disabled ? disabledBackgroundColor : backgroundColor,
+        },
         style,
       ]}
       onPress={disabled ? undefined : onPress}

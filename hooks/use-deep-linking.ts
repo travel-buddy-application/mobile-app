@@ -9,7 +9,6 @@ export const useDeepLinking = () => {
     useState<InvitationData | null>(null);
 
   useEffect(() => {
-    // Handle initial URL when app is opened from a cold start
     const getInitialUrl = async () => {
       try {
         const url = await Linking.getInitialURL();
@@ -22,7 +21,6 @@ export const useDeepLinking = () => {
       }
     };
 
-    // Handle URLs when app is already running
     const handleUrlChange = (event: { url: string }) => {
       handleDeepLink(event.url);
     };

@@ -119,7 +119,7 @@ export const locationEmailService = async ({
           Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
-          type: "location-share", // Indicate this is a location sharing email
+          type: "location-share",
           contactPerson,
           person,
           receiverEmail,

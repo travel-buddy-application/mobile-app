@@ -1,4 +1,3 @@
-// User and authentication related types
 
 export interface User {
   id: string;
@@ -34,7 +33,6 @@ export interface EmergencyContactCreateInput {
   isPrimary?: boolean;
 }
 
-// Onboarding flow types
 export interface OnboardingStep {
   step: number;
   title: string;

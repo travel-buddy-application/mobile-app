@@ -2,41 +2,30 @@
  * Validation utility functions for the Travel Buddy app
  */
 
-// Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Phone number validation (basic international format)
 const PHONE_REGEX = /^\+?[\d\s\-\(\)]{10,}$/;
 
-// URL validation regex
 const URL_REGEX =
   /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
 
-/**
- * Validate email address
- */
+
 export const isValidEmail = (email: string): boolean => {
   return EMAIL_REGEX.test(email.trim());
 };
 
-/**
- * Validate phone number
- */
+
 export const isValidPhoneNumber = (phone: string): boolean => {
   const cleanPhone = phone.replace(/\s/g, "");
   return PHONE_REGEX.test(cleanPhone) && cleanPhone.length >= 10;
 };
 
-/**
- * Validate URL
- */
+
 export const isValidUrl = (url: string): boolean => {
   return URL_REGEX.test(url);
 };
 
-/**
- * Validate password strength
- */
+
 export const validatePassword = (
   password: string
 ): {
@@ -47,42 +36,36 @@ export const validatePassword = (
   const errors: string[] = [];
   let score = 0;
 
-  // Check length
   if (password.length < 8) {
     errors.push("Password must be at least 8 characters long");
   } else {
     score += 1;
   }
 
-  // Check for lowercase
   if (!/[a-z]/.test(password)) {
     errors.push("Password must contain at least one lowercase letter");
   } else {
     score += 1;
   }
 
-  // Check for uppercase
   if (!/[A-Z]/.test(password)) {
     errors.push("Password must contain at least one uppercase letter");
   } else {
     score += 1;
   }
 
-  // Check for numbers
   if (!/\d/.test(password)) {
     errors.push("Password must contain at least one number");
   } else {
     score += 1;
   }
 
-  // Check for special characters
   if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
     errors.push("Password must contain at least one special character");
   } else {
     score += 1;
   }
 
-  // Determine strength
   let strength: "weak" | "medium" | "strong" = "weak";
   if (score >= 4) {
     strength = "strong";
@@ -97,9 +80,7 @@ export const validatePassword = (
   };
 };
 
-/**
- * Validate required field
- */
+
 export const isRequired = (value: any): boolean => {
   if (typeof value === "string") {
     return value.trim().length > 0;
@@ -107,54 +88,40 @@ export const isRequired = (value: any): boolean => {
   return value !== null && value !== undefined && value !== "";
 };
 
-/**
- * Validate minimum length
- */
+
 export const minLength = (value: string, min: number): boolean => {
   return value.length >= min;
 };
 
-/**
- * Validate maximum length
- */
+
 export const maxLength = (value: string, max: number): boolean => {
   return value.length <= max;
 };
 
-/**
- * Validate number range
- */
+
 export const isInRange = (value: number, min: number, max: number): boolean => {
   return value >= min && value <= max;
 };
 
-/**
- * Validate budget amount
- */
+
 export const isValidBudget = (budget: string | number): boolean => {
   const numBudget = typeof budget === "string" ? parseFloat(budget) : budget;
   return !isNaN(numBudget) && numBudget > 0 && numBudget <= 1000000; // Max budget of 1M
 };
 
-/**
- * Validate trip title
- */
+
 export const isValidTripTitle = (title: string): boolean => {
   const trimmed = title.trim();
   return trimmed.length >= 3 && trimmed.length <= 100;
 };
 
-/**
- * Validate destination name
- */
+
 export const isValidDestination = (destination: string): boolean => {
   const trimmed = destination.trim();
   return trimmed.length >= 2 && trimmed.length <= 100;
 };
 
-/**
- * Validate date range (start date should be before end date)
- */
+
 export const isValidDateRange = (
   startDate: string,
   endDate: string
@@ -165,9 +132,7 @@ export const isValidDateRange = (
   return !isNaN(start.getTime()) && !isNaN(end.getTime()) && start <= end;
 };
 
-/**
- * Validate file type
- */
+
 export const isValidFileType = (
   fileName: string,
   allowedTypes: string[]
@@ -176,9 +141,7 @@ export const isValidFileType = (
   return extension ? allowedTypes.includes(extension) : false;
 };
 
-/**
- * Validate file size
- */
+
 export const isValidFileSize = (
   fileSize: number,
   maxSizeInMB: number
@@ -187,9 +150,7 @@ export const isValidFileSize = (
   return fileSize <= maxSizeInBytes;
 };
 
-/**
- * Generic form validation function
- */
+
 export const validateForm = <T extends Record<string, any>>(
   data: T,
   rules: Record<keyof T, ((value: any) => string | null)[]>
@@ -220,9 +181,6 @@ export const validateForm = <T extends Record<string, any>>(
   return { isValid, errors };
 };
 
-/**
- * Common validation rules
- */
 export const validationRules = {
   required:
     (fieldName: string) =>

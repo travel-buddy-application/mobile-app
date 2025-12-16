@@ -4,13 +4,11 @@ import { create } from "zustand";
 import { createJSONStorage, devtools, persist } from "zustand/middleware";
 
 interface RiskStoreState {
-  // State
   ruleState: RuleState;
   settings: RiskSettings;
   isMonitoring: boolean;
   countdownTimer: number | null;
 
-  // Actions
   startMonitoring: () => void;
   stopMonitoring: () => void;
   recordCheckIn: () => void;
@@ -25,11 +23,11 @@ interface RiskStoreState {
 }
 
 const defaultSettings: RiskSettings = {
-  checkInInterval: 30, // 30 minutes
-  inactivityThreshold: 60, // 60 minutes
-  deviationRadius: 500, // 500 meters
+  checkInInterval: 30, 
+  inactivityThreshold: 60, 
+  deviationRadius: 500,
   maxMissedCheckIns: 2,
-  countdownDuration: 60, // 60 seconds
+  countdownDuration: 60,
 };
 
 const defaultRuleState: RuleState = {
@@ -46,13 +44,11 @@ export const useRiskStore = create<RiskStoreState>()(
   devtools(
     persist(
       (set, get) => ({
-        // Initial state
         ruleState: { ...defaultRuleState },
         settings: { ...defaultSettings },
         isMonitoring: false,
         countdownTimer: null,
 
-        // Start risk monitoring
         startMonitoring: () => {
           const now = Date.now();
           const { settings } = get();
@@ -68,7 +64,6 @@ export const useRiskStore = create<RiskStoreState>()(
           });
         },
 
-        // Stop risk monitoring
         stopMonitoring: () => {
           const { countdownTimer } = get();
           if (countdownTimer) {
@@ -82,7 +77,6 @@ export const useRiskStore = create<RiskStoreState>()(
           });
         },
 
-        // Record successful check-in
         recordCheckIn: () => {
           const now = Date.now();
           const { settings } = get();
@@ -99,7 +93,6 @@ export const useRiskStore = create<RiskStoreState>()(
             },
           });
 
-          // Stop countdown if running
           const { countdownTimer } = get();
           if (countdownTimer) {
             clearInterval(countdownTimer);
@@ -107,7 +100,6 @@ export const useRiskStore = create<RiskStoreState>()(
           }
         },
 
-        // Handle missed check-in
         missedCheckIn: () => {
           const { ruleState, settings } = get();
           const newMissedCount = ruleState.missedOkCount + 1;
@@ -129,7 +121,6 @@ export const useRiskStore = create<RiskStoreState>()(
           });
         },
 
-        // Set route deviation flag
         setDeviationFlag: (flag: boolean) => {
           const { ruleState } = get();
 
@@ -140,7 +131,6 @@ export const useRiskStore = create<RiskStoreState>()(
             },
           });
 
-          // If deviation detected, trigger warning
           if (flag && ruleState.escalationLevel === "none") {
             set({
               ruleState: {
@@ -151,13 +141,11 @@ export const useRiskStore = create<RiskStoreState>()(
           }
         },
 
-        // Update inactivity status
         updateInactivity: (since?: number) => {
           const { ruleState, settings } = get();
           const now = Date.now();
 
           if (since && now - since > settings.inactivityThreshold * 60 * 1000) {
-            // Inactivity threshold exceeded
             set({
               ruleState: {
                 ...ruleState,
@@ -169,7 +157,6 @@ export const useRiskStore = create<RiskStoreState>()(
               },
             });
           } else {
-            // Clear inactivity
             set({
               ruleState: {
                 ...ruleState,
@@ -179,7 +166,6 @@ export const useRiskStore = create<RiskStoreState>()(
           }
         },
 
-        // Start countdown to SOS
         startCountdown: () => {
           const { settings } = get();
           let timeLeft = settings.countdownDuration;
@@ -203,7 +189,6 @@ export const useRiskStore = create<RiskStoreState>()(
           set({ countdownTimer: timer });
         },
 
-        // Stop countdown
         stopCountdown: () => {
           const { countdownTimer } = get();
           if (countdownTimer) {
@@ -218,7 +203,6 @@ export const useRiskStore = create<RiskStoreState>()(
           }
         },
 
-        // Escalate to full SOS
         escalateToSOS: () => {
           const { countdownTimer } = get();
           if (countdownTimer) {
@@ -234,7 +218,6 @@ export const useRiskStore = create<RiskStoreState>()(
           });
         },
 
-        // Reset rule state
         resetRuleState: () => {
           const { countdownTimer } = get();
           if (countdownTimer) {
