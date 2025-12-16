@@ -65,20 +65,20 @@ export class StationaryDetectionService {
 
     const distance = calculateDistance(this.referenceLocation, location);
 
-    if (distance > 20) {
+    if (distance > 60) {
       this.referenceLocation = location;
       this.startTime = Date.now();
     } else {
       const elapsed = Date.now() - (this.startTime || 0);
-      const remaining = 5 * 60 * 1000 - elapsed; // 10 seconds for testing
+      const remaining = 2 * 60 * 1000 - elapsed; // 2 minutes for testing
       console.log(
         `📍 Stationary for ${(elapsed / 1000).toFixed(1)}s, remaining: ${(
           remaining / 1000
         ).toFixed(1)}s`
       );
 
-      if (elapsed >= 5 * 60 * 1000) {
-        // 10 seconds for testing
+      if (elapsed >= 2 * 60 * 1000) {
+        // 2 minutes for testing
         console.log("📍 Stationary alert triggered!");
         this.onStationaryDetected?.();
         // Reset timer to prevent continuous triggering
