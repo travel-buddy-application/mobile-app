@@ -2,7 +2,6 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import type { CompositeNavigationProp } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 
-// Navigation types for React Navigation
 export type RootStackParamList = {
   Root: undefined;
   Modal: undefined;
@@ -39,7 +38,6 @@ export type ProfileStackParamList = {
   TripHistory: undefined;
 };
 
-// Navigation prop types for screens
 export type RootStackNavigationProp = StackNavigationProp<RootStackParamList>;
 
 export type TabNavigationProp = BottomTabNavigationProp<TabParamList>;
@@ -49,7 +47,6 @@ export type TripStackNavigationProp = StackNavigationProp<TripStackParamList>;
 export type ProfileStackNavigationProp =
   StackNavigationProp<ProfileStackParamList>;
 
-// Composite navigation types for nested navigators
 export type HomeScreenNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Home">,
   StackNavigationProp<RootStackParamList>

@@ -1,10 +1,7 @@
 import { ContactSelectorModal } from "@/components/contact-selector-modal";
 import { ReceivedTripsSection } from "@/components/received-trips-section";
 import { StationaryAlertModal } from "@/components/stationary-alert-modal";
-import { ThemedButton } from "@/components/themed-button";
-import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { errorColor, successColor } from "@/constants/theme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import HomeHeader from "@/components/home/Header";
 import HomeStats from "@/components/home/Stats";
@@ -12,10 +9,7 @@ import TripControls from "@/components/home/TripControls";
 import { PeriodicLocationSharingService } from "@/services/location/periodic-location-sharing.service";
 import { StationaryDetectionService } from "@/services/location/stationary-detection.service";
 import { TripLocationIntegrationService } from "@/services/location/trip-location-integration.service";
-import {
-  startTripWithContacts as serviceStartTrip,
-  endTrip as serviceEndTrip,
-} from "@/services/home/trip.service";
+import { endTrip as serviceEndTrip } from "@/services/home/trip.service";
 import { sendEmergencySOS as serviceSendSOS } from "@/services/home/sos.service";
 import {
   useAuthStore,
@@ -25,7 +19,7 @@ import {
   useTripStore,
 } from "@/stores";
 import React, { useState } from "react";
-import { Alert, Image, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, ScrollView, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SafetyFeatures } from "@/components/home/SafetyFeatures";
 
@@ -36,27 +30,20 @@ export const HomeScreen: React.FC = () => {
   const { contacts } = useContactStore();
   const locationStore = useLocationStore();
 
-  // State for contact selection modal
   const [showContactSelector, setShowContactSelector] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string>("");
 
-  // State for stationary alert modal
   const [showStationaryAlert, setShowStationaryAlert] = useState(false);
 
-  // Stationary detection service
   const stationaryService = React.useRef(
     new StationaryDetectionService()
   ).current;
 
-  // Theme colors
   const backgroundColor = useThemeColor({}, "background");
 
   const handleStartTrip = async () => {
     try {
-      // Check for emergency contacts first
       const contactIds = contacts.map((contact) => contact.id);
-      console.log("🔍 Safe trip - checking contact IDs:", contactIds);
-      console.log("🔍 Available contacts:", contacts.length);
 
       if (contactIds.length === 0) {
         Alert.alert(
@@ -67,7 +54,6 @@ export const HomeScreen: React.FC = () => {
         return;
       }
 
-      // Check that at least one contact is in accepted state
       const acceptedContacts = contacts.filter(
         (contact) => contact.status === "accepted"
       );
@@ -106,7 +92,6 @@ export const HomeScreen: React.FC = () => {
         return;
       }
 
-      // Check location permissions before showing contact selector
       const hasLocationPermission =
         await TripLocationIntegrationService.ensureLocationPermissions();
       if (!hasLocationPermission) {
@@ -118,15 +103,13 @@ export const HomeScreen: React.FC = () => {
         return;
       }
 
-      // Show contact selector modal
-      setSelectedContactId(""); // Reset selection
+      setSelectedContactId("");
       setShowContactSelector(true);
     } catch (error) {
       Alert.alert("Error", `Failed to start safe trip: ${error}`);
     }
   };
 
-  // Handle contact selection modal actions
   const handleContactSelect = (contactId: string) => {
     setSelectedContactId(contactId);
   };
@@ -144,7 +127,6 @@ export const HomeScreen: React.FC = () => {
 
     setShowContactSelector(false);
 
-    // Start trip with selected contact
     try {
       await startTripWithContacts([selectedContactId]);
     } catch (error) {
@@ -154,7 +136,6 @@ export const HomeScreen: React.FC = () => {
 
   const startTripWithContacts = async (contactIds: string[]) => {
     try {
-      // Get current location first
       let currentLocation;
       try {
         currentLocation = await locationStore.getCurrentPosition();
@@ -182,14 +163,13 @@ export const HomeScreen: React.FC = () => {
           address: "Current Location",
         },
         destination: {
-          lat: currentLocation.lat + 0.01, // Slightly offset for destination
+          lat: currentLocation.lat + 0.01, 
           lng: currentLocation.lng + 0.01,
           address: "Destination",
         },
-        contacts: contactIds, // Use actual contact IDs from contact store
+        contacts: contactIds, 
       });
 
-      // Ensure location tracking is active after trip starts
       try {
         await locationStore.getCurrentPosition();
         console.log("✅ Location tracking confirmed active after trip start");
@@ -198,7 +178,7 @@ export const HomeScreen: React.FC = () => {
           "⚠️ Location tracking may not be fully active:",
           locationError
         );
-      } // Get the selected contact name for the success message
+      }
       const selectedContact = contacts.find((contact) =>
         contactIds.includes(contact.id)
       );
@@ -211,7 +191,6 @@ export const HomeScreen: React.FC = () => {
         `Your safe trip is now active! ${contactName} will be monitoring your journey and can receive your location updates.`
       );
 
-      // Start stationary detection monitoring
       stationaryService.startMonitoring(() => {
         setShowStationaryAlert(true);
       });
@@ -222,10 +201,8 @@ export const HomeScreen: React.FC = () => {
 
   const handleEndTrip = async () => {
     try {
-      // Use the home service which stops tracking then ends the trip
       await serviceEndTrip();
 
-      // Stop stationary detection
       stationaryService.stopMonitoring();
 
       Alert.alert("Success", "Safe trip ended and location tracking stopped!");
@@ -240,7 +217,6 @@ export const HomeScreen: React.FC = () => {
       return;
     }
 
-    // Try to get current location if not available
     let currentLocation = locationStore.currentLocation;
     if (!currentLocation) {
       try {
@@ -271,7 +247,6 @@ export const HomeScreen: React.FC = () => {
             style: "destructive",
             onPress: async () => {
               try {
-                // Refresh trip data
                 await fetchTrips();
                 const currentActiveTrip = activeTrip;
 
@@ -281,7 +256,6 @@ export const HomeScreen: React.FC = () => {
                   return;
                 }
 
-                // Send push notifications
                 const pushResult =
                   await PeriodicLocationSharingService.sendManualEmergencyAlert(
                     currentActiveTrip,
@@ -289,14 +263,12 @@ export const HomeScreen: React.FC = () => {
                     "🆘 EMERGENCY SOS: I need immediate help!"
                   );
 
-                // Send email notifications
                 const emailResult =
                   await TripLocationIntegrationService.sendEmergencyAlert(
                     "Emergency Contact",
                     "🆘 EMERGENCY SOS: I need immediate help! This is my current location."
                   );
 
-                // Show results
                 let message = "SOS sent:\n";
                 if (pushResult.success) {
                   message += `✅ Push: ${pushResult.sentCount} contacts\n`;
@@ -319,14 +291,12 @@ export const HomeScreen: React.FC = () => {
       );
     } else {
       try {
-        // Refresh trip data
         await fetchTrips();
         const currentActiveTrip = activeTrip;
         if (!currentActiveTrip) {
           Alert.alert("Error", "No active trip found");
           return;
         }
-        // Send push notifications
         await PeriodicLocationSharingService.sendManualEmergencyAlert(
           currentActiveTrip,
           currentLocation,
@@ -360,24 +330,20 @@ export const HomeScreen: React.FC = () => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
         <HomeHeader userName={user?.name} />
 
-        {/* Quick Stats */}
         <HomeStats
           completed={completedTrips.length}
           total={trips.length}
           contacts={contacts.length}
         />
 
-        {/* Received Trips Section */}
         <ReceivedTripsSection
           onLocationFetch={(sessionId) => {
             console.log("📍 Location fetched for session:", sessionId);
           }}
         />
 
-        {/* Active Trip or Start Trip */}
         <ThemedView style={styles.tripContainer}>
           <TripControls
             activeTrip={activeTrip}
@@ -387,11 +353,9 @@ export const HomeScreen: React.FC = () => {
             contactsCount={contacts.length}
           />
         </ThemedView>
-        {/* Safety Features */}
         <SafetyFeatures />
       </ScrollView>
 
-      {/* Contact Selector Modal */}
       <ContactSelectorModal
         visible={showContactSelector}
         contacts={contacts}
@@ -401,7 +365,6 @@ export const HomeScreen: React.FC = () => {
         onConfirm={handleContactSelectorConfirm}
       />
 
-      {/* Stationary Alert Modal */}
       <StationaryAlertModal
         visible={showStationaryAlert}
         onOkay={handleStationaryOkay}
@@ -418,106 +381,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
   },
-  // header: {
-  //   alignItems: "center",
-  //   marginBottom: 30,
-  // },
-  // appTitleContainer: {
-  //   flexDirection: "row",
-  //   alignItems: "center",
-  //   marginBottom: 8,
-  // },
-  // appIcon: {
-  //   width: 32,
-  //   height: 32,
-  //   marginRight: 12,
-  // },
-  // appTitle: {
-  //   fontSize: 24,
-  //   fontWeight: "bold",
-  //   marginBottom: 0,
-  // },
-  // welcomeText: {
-  //   fontSize: 16,
-  // },
-  // statsContainer: {
-  //   flexDirection: "row",
-  //   marginBottom: 30,
-  //   gap: 8,
-  // },
-  // statCard: {
-  //   alignItems: "center",
-  //   justifyContent: "flex-start",
-  //   flex: 1,
-  //   padding: 12,
-  //   borderRadius: 12,
-  //   borderWidth: 1,
-  //   minHeight: 70,
-  // },
-  // statNumber: {
-  //   fontSize: 22,
-  //   marginBottom: 4,
-  //   fontWeight: "bold",
-  // },
-  // statLabel: {
-  //   fontSize: 11,
-  //   opacity: 0.7,
-  //   textAlign: "center",
-  //   lineHeight: 14,
-  // },
   tripContainer: {
     marginBottom: 30,
   },
-  // activeTripCard: {
-  //   padding: 20,
-  //   borderRadius: 12,
-  //   backgroundColor: successColor,
-  // },
-  // activeTripTitle: {
-  //   fontSize: 18,
-  //   fontWeight: "bold",
-  //   marginBottom: 8,
-  // },
-  // activeTripSubtitle: {
-  //   fontSize: 14,
-  //   marginBottom: 4,
-  // },
-  // activeTripTime: {
-  //   fontSize: 12,
-  //   marginBottom: 15,
-  // },
-  // sosButton: {
-  //   backgroundColor: errorColor,
-  //   marginTop: 10,
-  // },
-  // sosButtonText: {
-  //   color: "white",
-  //   fontWeight: "bold",
-  // },
-  // startTripCard: {
-  //   padding: 20,
-  //   borderRadius: 12,
-  //   alignItems: "center",
-  // },
-  // startTripTitle: {
-  //   fontSize: 18,
-  //   fontWeight: "bold",
-  //   marginBottom: 8,
-  //   textAlign: "center",
-  // },
-  // startTripSubtitle: {
-  //   fontSize: 14,
-  //   textAlign: "center",
-  //   marginBottom: 20,
-  //   opacity: 0.7,
-  // },
-  // startTripButton: {
-  //   minWidth: 200,
-  // },
-  // startTripButtonText: {
-  //   color: "white",
-  //   fontWeight: "bold",
-  // },
 });
 
 export default HomeScreen;

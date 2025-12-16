@@ -1,7 +1,6 @@
 import { ApiError, ApiResponse } from "@/types/api";
 import { config } from "./config";
 
-// HTTP request options
 interface RequestOptions {
   headers?: Record<string, string>;
   body?: any;
@@ -9,26 +8,21 @@ interface RequestOptions {
   retries?: number;
 }
 
-// Default headers
 const defaultHeaders = {
   "Content-Type": "application/json",
   Accept: "application/json",
 };
 
-// Get authentication headers
 const getAuthHeaders = (): Record<string, string> => {
-  // In a real app, you'd get the token from secure storage
   const token = "your-auth-token"; // Replace with actual token management
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-// Build full URL
 const buildUrl = (endpoint: string): string => {
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint.slice(1) : endpoint;
   return `${config.apiBaseUrl}/${cleanEndpoint}`;
 };
 
-// Create request with timeout and retry logic
 const createRequest = async (
   url: string,
   options: RequestInit,
@@ -48,7 +42,6 @@ const createRequest = async (
   } catch (error) {
     clearTimeout(timeoutId);
 
-    // Retry logic for network errors
     if (retries > 0 && error instanceof Error && error.name === "AbortError") {
       console.warn(`Request failed, retrying... (${retries} attempts left)`);
       await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
@@ -59,7 +52,6 @@ const createRequest = async (
   }
 };
 
-// Parse response
 const parseResponse = async <T>(response: Response): Promise<T> => {
   const contentType = response.headers.get("content-type");
 
@@ -74,7 +66,6 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
         errorMessage = (await response.text()) || errorMessage;
       }
     } catch {
-      // If we can't parse the error, use the default message
     }
 
     throw new Error(errorMessage);
@@ -88,7 +79,6 @@ const parseResponse = async <T>(response: Response): Promise<T> => {
   return response.text() as unknown as T;
 };
 
-// Generic HTTP request function
 const request = async <T>(
   endpoint: string,
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
@@ -245,7 +235,6 @@ export const httpUtils = {
   },
 };
 
-// Export individual functions for convenience
 export const {
   get,
   post,
@@ -256,5 +245,4 @@ export const {
   downloadFile,
 } = httpUtils;
 
-// Default export
 export default httpUtils;

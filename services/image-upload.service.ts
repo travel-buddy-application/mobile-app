@@ -16,18 +16,13 @@ export const uploadProfileImage = async (
   userId: string
 ): Promise<ImageUploadResult> => {
   try {
-    // Create a unique filename
     const fileExt = imageUri.split(".").pop();
     const fileName = `${userId}_${Date.now()}.${fileExt}`;
 
-    console.log("📤 Uploading profile image:", fileName);
-
-    // Read the file as base64 for React Native
     const response = await fetch(imageUri);
     const arrayBuffer = await response.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
 
-    // Upload to Supabase Storage
     const { error } = await supabase.storage
       .from("profile-images")
       .upload(`avatars/${fileName}`, uint8Array, {
@@ -44,7 +39,6 @@ export const uploadProfileImage = async (
       };
     }
 
-    // Get the public URL
     const { data: urlData } = supabase.storage
       .from("profile-images")
       .getPublicUrl(`avatars/${fileName}`);

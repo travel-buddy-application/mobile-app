@@ -19,24 +19,19 @@ export class DatabaseService {
     };
   }
 
-  // Singleton pattern for database connection
   public static getInstance(): DatabaseService {
     if (!DatabaseService.instance) {
       DatabaseService.instance = new DatabaseService();
     }
     return DatabaseService.instance;
   }
-  // Initialize database connection and create tables
   public async initialize(): Promise<void> {
-    // Prevent multiple initialization
     if (this.isInitialized) {
       console.log("📋 Database already initialized");
       return;
     }
 
     if (this.isInitializing) {
-      console.log("⏳ Database initialization in progress, waiting...");
-      // Wait for current initialization to complete
       while (this.isInitializing) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
@@ -48,12 +43,9 @@ export class DatabaseService {
     try {
       console.log("🗄️ Initializing Travel Buddy Database...");
 
-      // Open database connection
       this.db = await SQLite.openDatabaseAsync(this.config.name);
 
-      console.log("✅ Database connection established");
 
-      // Create tables
       await this.createTables();
 
       this.isInitialized = true;
@@ -66,7 +58,6 @@ export class DatabaseService {
       this.isInitializing = false;
     }
   }
-  // Get database connection
   public async getConnection(): Promise<SQLite.SQLiteDatabase> {
     if (!this.db) {
       throw new Error("Database not initialized. Call initialize() first.");
@@ -75,18 +66,13 @@ export class DatabaseService {
     return this.db;
   }
 
-  // Create all database tables
   private async createTables(): Promise<void> {
     if (!this.db) {
       throw new Error("Database not initialized");
     }
 
-    console.log("📋 Creating database tables...");
-
-    // Enable foreign key constraints
     await this.db.execAsync("PRAGMA foreign_keys = ON;");
 
-    // Create Users table
     await this.db.execAsync(`
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
@@ -101,7 +87,6 @@ export class DatabaseService {
       );
     `);
 
-    // Create Trips table
     await this.db.execAsync(`
       CREATE TABLE IF NOT EXISTS trips (
         id TEXT PRIMARY KEY,
@@ -125,7 +110,6 @@ export class DatabaseService {
       );
     `);
 
-    // Create Location Samples table
     await this.db.execAsync(`
       CREATE TABLE IF NOT EXISTS location_samples (
         id TEXT PRIMARY KEY,
@@ -143,7 +127,6 @@ export class DatabaseService {
       );
     `);
 
-    // Create indexes for better query performance
     await this.db.execAsync(`
       CREATE INDEX IF NOT EXISTS idx_trips_user_id ON trips (user_id);
     `);
@@ -259,12 +242,10 @@ export class DatabaseService {
     await this.ensureDefaultUser();
   }
 
-  // Health check - verify database is working
   public async healthCheck(): Promise<boolean> {
     try {
       const db = await this.getConnection();
 
-      // Simple test using execAsync (which we know works)
       await db.execAsync("SELECT 1 FROM users LIMIT 1;");
 
       console.log("🏥 Database health check - Basic table access successful");
@@ -274,13 +255,9 @@ export class DatabaseService {
       return false;
     }
   }
-  // Get database info for debugging (simplified to avoid query issues)
   public async getInfo(): Promise<any> {
     try {
       const db = await this.getConnection();
-
-      // Just return basic info without complex queries for now
-      console.log("📊 Database info - using basic table existence checks");
 
       let tablesExist = 0;
       try {
@@ -296,7 +273,7 @@ export class DatabaseService {
       try {
         await db.execAsync("SELECT 1 FROM location_samples LIMIT 1;");
         tablesExist++;
-      } catch {} // Get actual counts using getAllAsync
+      } catch {} 
       let userCount = 0;
       let tripCount = 0;
       let locationCount = 0;
@@ -349,7 +326,6 @@ export class DatabaseService {
     }
   }
 
-  // Close database connection
   public async close(): Promise<void> {
     if (this.db) {
       await this.db.closeAsync();
@@ -358,7 +334,6 @@ export class DatabaseService {
     }
   }
 
-  // Clear all data (useful for development/testing)
   public async clearAllData(): Promise<void> {
     try {
       const db = await this.getConnection();
@@ -395,5 +370,4 @@ export class DatabaseService {
   }
 }
 
-// Export singleton instance
 export const databaseService = DatabaseService.getInstance();

@@ -1,4 +1,3 @@
-// Generic API response structure
 export interface ApiResponse<T = any> {
   success: boolean;
   data: T;
@@ -12,7 +11,6 @@ export interface ApiResponse<T = any> {
   };
 }
 
-// Error response structure
 export interface ApiError {
   success: false;
   message: string;
@@ -21,7 +19,6 @@ export interface ApiError {
   statusCode?: number;
 }
 
-// Pagination types
 export interface PaginationParams {
   page?: number;
   limit?: number;
@@ -38,7 +35,6 @@ export interface PaginationMeta {
   hasPrev: boolean;
 }
 
-// Request/Response wrapper types
 export interface ListResponse<T> extends ApiResponse<T[]> {
   meta: PaginationMeta;
 }
@@ -55,10 +51,8 @@ export interface DeleteResponse extends ApiResponse<null> {
   message: string;
 }
 
-// HTTP method types
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
-// Request configuration
 export interface RequestConfig {
   method: HttpMethod;
   url: string;
@@ -68,7 +62,6 @@ export interface RequestConfig {
   timeout?: number;
 }
 
-// Upload response
 export interface UploadResponse {
   url: string;
   filename: string;

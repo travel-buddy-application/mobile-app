@@ -2,7 +2,6 @@
  * Date utility functions for the Travel Buddy app
  */
 
-// Date format constants
 export const DATE_FORMATS = {
   ISO: "YYYY-MM-DD",
   DISPLAY: "MMM DD, YYYY",
@@ -12,9 +11,7 @@ export const DATE_FORMATS = {
   DATETIME: "MMM DD, YYYY HH:mm",
 } as const;
 
-/**
- * Format a date string or Date object to a readable format
- */
+
 export const formatDate = (
   date: string | Date,
   format: keyof typeof DATE_FORMATS = "DISPLAY"
@@ -66,9 +63,6 @@ export const formatDate = (
   return dateObj.toLocaleDateString("en-US", options);
 };
 
-/**
- * Get relative time string (e.g., "2 days ago", "in 3 weeks")
- */
 export const getRelativeTime = (date: string | Date): string => {
   const dateObj = typeof date === "string" ? new Date(date) : date;
   const now = new Date();
@@ -94,9 +88,6 @@ export const getRelativeTime = (date: string | Date): string => {
   }
 };
 
-/**
- * Calculate the duration between two dates
- */
 export const calculateDuration = (
   startDate: string | Date,
   endDate: string | Date
@@ -125,29 +116,23 @@ export const calculateDuration = (
   return { days, nights, formatted };
 };
 
-/**
- * Check if a date is in the past
- */
+
 export const isPastDate = (date: string | Date): boolean => {
   const dateObj = typeof date === "string" ? new Date(date) : date;
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // Reset time to start of day
+  today.setHours(0, 0, 0, 0);
   return dateObj < today;
 };
 
-/**
- * Check if a date is in the future
- */
+
 export const isFutureDate = (date: string | Date): boolean => {
   const dateObj = typeof date === "string" ? new Date(date) : date;
   const today = new Date();
-  today.setHours(23, 59, 59, 999); // Set time to end of day
+  today.setHours(23, 59, 59, 999);
   return dateObj > today;
 };
 
-/**
- * Check if a date is today
- */
+
 export const isToday = (date: string | Date): boolean => {
   const dateObj = typeof date === "string" ? new Date(date) : date;
   const today = new Date();
@@ -159,9 +144,7 @@ export const isToday = (date: string | Date): boolean => {
   );
 };
 
-/**
- * Get the start and end of a date range
- */
+
 export const getDateRange = (
   startDate: string | Date,
   days: number
@@ -177,9 +160,7 @@ export const getDateRange = (
   return { start, end };
 };
 
-/**
- * Validate date string format (ISO format: YYYY-MM-DD)
- */
+
 export const isValidDateString = (dateString: string): boolean => {
   const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
   if (!isoDateRegex.test(dateString)) {
@@ -192,50 +173,38 @@ export const isValidDateString = (dateString: string): boolean => {
   );
 };
 
-/**
- * Get current date in ISO format
- */
+
 export const getCurrentDate = (): string => {
   return new Date().toISOString().split("T")[0];
 };
 
-/**
- * Add days to a date
- */
+
 export const addDays = (date: string | Date, days: number): Date => {
   const dateObj = typeof date === "string" ? new Date(date) : new Date(date);
   dateObj.setDate(dateObj.getDate() + days);
   return dateObj;
 };
 
-/**
- * Subtract days from a date
- */
+
 export const subtractDays = (date: string | Date, days: number): Date => {
   return addDays(date, -days);
 };
 
-/**
- * Get the minimum date (earlier date) between two dates
- */
+
 export const minDate = (date1: string | Date, date2: string | Date): Date => {
   const d1 = typeof date1 === "string" ? new Date(date1) : date1;
   const d2 = typeof date2 === "string" ? new Date(date2) : date2;
   return d1 < d2 ? d1 : d2;
 };
 
-/**
- * Get the maximum date (later date) between two dates
- */
+
 export const maxDate = (date1: string | Date, date2: string | Date): Date => {
   const d1 = typeof date1 === "string" ? new Date(date1) : date1;
   const d2 = typeof date2 === "string" ? new Date(date2) : date2;
   return d1 > d2 ? d1 : d2;
 };
 
-/**
- * Check if date ranges overlap
- */
+
 export const dateRangesOverlap = (
   start1: string | Date,
   end1: string | Date,

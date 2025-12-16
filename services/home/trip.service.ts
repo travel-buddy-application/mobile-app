@@ -3,7 +3,6 @@ import { useLocationStore } from '@/stores';
 
 export async function startTripWithContacts(contactIds: string[]) {
   const locationStore = useLocationStore.getState();
-  // get current position
   const currentLocation = (await locationStore.getCurrentPosition()) ?? { lat: 40.7128, lng: -74.006, accuracy: 100, timestamp: Date.now() } as any;
 
   await TripLocationIntegrationService.startTripWithLocationTracking({

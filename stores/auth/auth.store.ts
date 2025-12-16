@@ -10,7 +10,6 @@ import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 import { createJSONStorage, devtools, persist } from "zustand/middleware";
 interface AuthState {
-  // State
   user: User | null;
   isOnboarded: boolean;
   currentOnboardingStep: OnboardingSteps;
@@ -18,7 +17,6 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
 
-  // Actions
   createUserProfile: (userData: UserCreateInput) => Promise<void>;
   updateUserProfile: (updates: Partial<User>) => Promise<void>;
   addEmergencyContact: (contact: EmergencyContact) => Promise<void>;
@@ -30,7 +28,6 @@ interface AuthState {
   logout: () => Promise<void>;
   clearError: () => void;
 
-  // Debug helpers
   resetOnboarding: () => void;
   getOnboardingStatus: () => {
     isOnboarded: boolean;
@@ -44,7 +41,6 @@ export const useAuthStore = create<AuthState>()(
   devtools(
     persist(
       (set, get) => ({
-        // Initial state
         user: null,
         isOnboarded: false,
         currentOnboardingStep: "profile",
@@ -52,15 +48,12 @@ export const useAuthStore = create<AuthState>()(
         isLoading: false,
         error: null,
 
-        // Create user profile (Step 1 of onboarding)
         createUserProfile: async (userData: UserCreateInput) => {
           set({ isLoading: true, error: null });
 
           try {
-            // Initialize FCM service if not already done
             await fcmService.initialize();
 
-            // Get FCM token for push notifications
             const fcmToken = await fcmService.getToken();
 
             if (!fcmToken) {
@@ -79,7 +72,6 @@ export const useAuthStore = create<AuthState>()(
               updatedAt: new Date().toISOString(),
             };
 
-            // Save to secure storage
             await SecureStore.setItemAsync(
               "user_profile",
               JSON.stringify(newUser)
@@ -90,7 +82,6 @@ export const useAuthStore = create<AuthState>()(
               isLoading: false,
             });
 
-            // Complete profile step and move to contacts
             get().completeOnboardingStep("profile");
             get().setOnboardingStep("contacts");
           } catch (error) {
@@ -106,7 +97,6 @@ export const useAuthStore = create<AuthState>()(
           }
         },
 
-        // Update existing user profile
         updateUserProfile: async (updates: Partial<User>) => {
           set({ isLoading: true, error: null });
 
@@ -122,7 +112,6 @@ export const useAuthStore = create<AuthState>()(
               updatedAt: new Date().toISOString(),
             };
 
-            // Save to secure storage
             await SecureStore.setItemAsync(
               "user_profile",
               JSON.stringify(updatedUser)
@@ -145,7 +134,6 @@ export const useAuthStore = create<AuthState>()(
           }
         },
 
-        // Add emergency contact
         addEmergencyContact: async (contact: EmergencyContact) => {
           set({ isLoading: true, error: null });
 
@@ -172,7 +160,6 @@ export const useAuthStore = create<AuthState>()(
           }
         },
 
-        // Remove emergency contact
         removeEmergencyContact: async (contactId: string) => {
           set({ isLoading: true, error: null });
 
@@ -201,7 +188,6 @@ export const useAuthStore = create<AuthState>()(
           }
         },
 
-        // Complete an onboarding step
         completeOnboardingStep: (step: OnboardingSteps) => {
           const { completedSteps } = get();
           if (!completedSteps.includes(step)) {
@@ -211,18 +197,16 @@ export const useAuthStore = create<AuthState>()(
           }
         },
 
-        // Set current onboarding step
         setOnboardingStep: (step: OnboardingSteps) => {
           set({ currentOnboardingStep: step });
         },
 
-        // Complete entire onboarding process
         completeOnboarding: () => {
           set({
             isOnboarded: true,
             currentOnboardingStep: "completed",
           });
-        }, // Load user from secure storage
+        }, 
         loadUserFromStorage: async () => {
           set({ isLoading: true, error: null });
 
@@ -233,7 +217,7 @@ export const useAuthStore = create<AuthState>()(
               const user: User = JSON.parse(userJson);
               set({
                 user,
-                isOnboarded: true, // If user exists, they've completed onboarding
+                isOnboarded: true, 
                 currentOnboardingStep: "completed",
                 completedSteps: [
                   "profile",
@@ -244,7 +228,6 @@ export const useAuthStore = create<AuthState>()(
                 isLoading: false,
               });
             } else {
-              // No user found or empty storage - reset to initial state
               set({
                 user: null,
                 isOnboarded: false,
@@ -268,10 +251,8 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: true, error: null });
 
           try {
-            // Clear user profile from SecureStore
             await SecureStore.deleteItemAsync("user_profile");
 
-            // Clear contacts from contact store
             try {
               const { useContactStore } = await import(
                 "../contact/contact.store"
@@ -306,12 +287,10 @@ export const useAuthStore = create<AuthState>()(
           }
         },
 
-        // Clear error
         clearError: () => {
           set({ error: null });
         },
 
-        // Debug helpers for development/testing
         resetOnboarding: () => {
           set({
             isOnboarded: false,
@@ -337,7 +316,6 @@ export const useAuthStore = create<AuthState>()(
           isOnboarded: state.isOnboarded,
           currentOnboardingStep: state.currentOnboardingStep,
           completedSteps: state.completedSteps,
-          // Don't persist user data in regular storage - it's in SecureStore
         }),
       }
     ),

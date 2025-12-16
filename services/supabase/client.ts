@@ -1,9 +1,5 @@
-// Supabase Client Configuration for Travel Buddy
-// Handles database connections for location tracking and user data
-
 import { createClient } from "@supabase/supabase-js";
 
-// Supabase configuration
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || "";
 
@@ -15,17 +11,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn("- EXPO_PUBLIC_SUPABASE_ANON_KEY");
 }
 
-// Create Supabase client
 export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Disable automatic token refresh for mobile apps
     autoRefreshToken: true,
-    // Persist auth session in secure storage
     persistSession: true,
-    // Configure storage for React Native
     storage: {
       getItem: async (key: string) => {
-        // Use Expo SecureStore for auth tokens
         try {
           const { getItemAsync } = await import("expo-secure-store");
           return await getItemAsync(key);
@@ -52,15 +43,13 @@ export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       },
     },
   },
-  // Configure realtime
   realtime: {
     params: {
-      eventsPerSecond: 2, // Limit for location updates
+      eventsPerSecond: 2, 
     },
   },
 });
 
-// Helper function to check Supabase connection
 export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
     const { data, error } = await supabaseClient
@@ -81,7 +70,6 @@ export const checkSupabaseConnection = async (): Promise<boolean> => {
   }
 };
 
-// Export database types for TypeScript
 export type Database = {
   public: {
     Tables: {

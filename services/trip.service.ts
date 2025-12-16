@@ -23,7 +23,6 @@ export class TripService {
         completedTrip.id
       );
 
-      // Get user and contact information
       const contactStore = useContactStore.getState();
       const authStore = useAuthStore.getState();
       const user = authStore.user;
@@ -36,7 +35,6 @@ export class TripService {
         };
       }
 
-      // Get trip contacts
       const tripContacts = contactStore.contacts.filter((contact) =>
         completedTrip.contacts.includes(contact.id)
       );
@@ -49,7 +47,6 @@ export class TripService {
         };
       }
 
-      // Filter contacts that can receive notifications
       const notifiableContacts = tripContacts.filter(
         (contact) =>
           contact.pushToken &&
@@ -67,7 +64,6 @@ export class TripService {
         };
       }
 
-      // Calculate trip duration
       const startTime = new Date(completedTrip.startAt);
       const endTime = completedTrip.endAt
         ? new Date(completedTrip.endAt)
@@ -83,7 +79,6 @@ export class TripService {
           ? `${durationHours}h ${durationMinutes}m`
           : `${durationMinutes}m`;
 
-      // Create notification content
       const userName = user.name || "Travel Buddy User";
       const tripTitle = completedTrip.title || "Safety Trip";
       const destinationAddress =
@@ -92,7 +87,6 @@ export class TripService {
       const title = `${userName} completed their trip`;
       const body = `${userName} has safely completed their trip "${tripTitle}" to ${destinationAddress}. Trip duration: ${durationText}`;
 
-      // Send notifications to all contacts
       let notificationsSent = 0;
       const notificationPromises = notifiableContacts.map(async (contact) => {
         try {
@@ -104,7 +98,7 @@ export class TripService {
               type: "trip_ended_with_session",
               tripId: completedTrip.id,
               userId: user.id,
-              sessionId: completedTrip.id, // Use trip ID as session ID for compatibility
+              sessionId: completedTrip.id, 
               userName,
               title: tripTitle,
               body: `${userName} has safely completed "${tripTitle}"`,
@@ -126,7 +120,6 @@ export class TripService {
         }
       });
 
-      // Wait for all notifications to complete
       await Promise.allSettled(notificationPromises);
 
       const successMessage = `Trip completion notifications sent to ${notificationsSent} of ${notifiableContacts.length} contacts`;
@@ -155,7 +148,6 @@ export class TripService {
     userName: string
   ): Promise<boolean> {
     try {
-      // Get user information
       const authStore = useAuthStore.getState();
       const user = authStore.user;
 
@@ -163,7 +155,6 @@ export class TripService {
       const destinationAddress =
         completedTrip.destination.address || "their destination";
 
-      // Calculate trip duration
       const startTime = new Date(completedTrip.startAt);
       const endTime = completedTrip.endAt
         ? new Date(completedTrip.endAt)
@@ -190,7 +181,7 @@ export class TripService {
           type: "trip_ended_with_session",
           tripId: completedTrip.id,
           userId: user?.id || "unknown",
-          sessionId: completedTrip.id, // Use trip ID as session ID for compatibility
+          sessionId: completedTrip.id, 
           userName,
           title: tripTitle,
           body: `${userName} has safely completed "${tripTitle}"`,

@@ -144,7 +144,6 @@ export interface ContactCreateInput {
   profileImageUrl?: string;
 }
 
-// Location types
 export interface Location {
   id: string;
   name: string;

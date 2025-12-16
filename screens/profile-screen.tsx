@@ -58,7 +58,6 @@ export const ProfileScreen: React.FC = () => {
   const validateForm = (): boolean => {
     const newErrors: Partial<UserCreateInput> = {};
 
-    // Name validation
     if (!isRequired(editedUser.name)) {
       newErrors.name = "Name is required";
     } else if (editedUser.name.trim().length < 2) {
@@ -72,7 +71,6 @@ export const ProfileScreen: React.FC = () => {
       newErrors.phone = "Please enter a valid phone number";
     }
 
-    // Email validation
     if (!isRequired(editedUser.email)) {
       newErrors.email = "Email is required";
     } else if (!isValidEmail(editedUser.email.trim())) {
@@ -162,7 +160,6 @@ export const ProfileScreen: React.FC = () => {
 
   const handleImageUpload = async () => {
     try {
-      // Request permission to access media library
       const permissionResult =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
@@ -173,7 +170,6 @@ export const ProfileScreen: React.FC = () => {
         return;
       }
 
-      // Show image picker options
       Alert.alert(
         "Select Image",
         "Choose how you'd like to select your profile picture",
@@ -247,11 +243,9 @@ export const ProfileScreen: React.FC = () => {
     setIsUploadingImage(true);
 
     try {
-      // Upload image to Supabase
       const uploadResult = await uploadProfileImage(imageUri, user.id);
 
       if (uploadResult.success && uploadResult.imageUrl) {
-        // Update user profile with new image URL
         await updateUserProfile({
           profileImageUrl: uploadResult.imageUrl,
         });
@@ -271,7 +265,6 @@ export const ProfileScreen: React.FC = () => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
         <ThemedView style={styles.header}>
           <ThemedView
             style={[
@@ -299,7 +292,6 @@ export const ProfileScreen: React.FC = () => {
               />
             )}
 
-            {/* Pencil Edit Icon */}
             <TouchableOpacity
               onPress={handleImageUpload}
               style={[
@@ -323,7 +315,6 @@ export const ProfileScreen: React.FC = () => {
           </ThemedText>
         </ThemedView>
 
-        {/* User Information */}
         <ThemedView
           style={[
             styles.card,
@@ -485,7 +476,6 @@ export const ProfileScreen: React.FC = () => {
           )}
         </ThemedView>
 
-        {/* Permissions */}
         <ThemedView
           style={[
             styles.card,
@@ -546,7 +536,6 @@ export const ProfileScreen: React.FC = () => {
           </ThemedView>
         </ThemedView>
 
-        {/* App Actions */}
         <ThemedView
           style={[
             styles.card,
@@ -566,7 +555,6 @@ export const ProfileScreen: React.FC = () => {
           />
         </ThemedView>
 
-        {/* App Info */}
         <ThemedView style={styles.appInfo}>
           <ThemedText style={styles.appInfoText}>
             Travel Buddy v1.0.0

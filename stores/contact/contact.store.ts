@@ -10,13 +10,11 @@ import { createJSONStorage, devtools, persist } from "zustand/middleware";
 import { useAuthStore } from "../auth/auth.store";
 
 interface ContactStoreState {
-  // State
   contacts: Contact[];
   selectedContacts: string[]; // Contact IDs for current trip
   isLoading: boolean;
   error: string | null;
   showAddForm: boolean;
-  // Actions
   addContact: (contact: ContactCreateInput) => Promise<string>;
   updateContact: (id: string, updates: Partial<Contact>) => Promise<void>;
   updateContactByEmail: (
@@ -45,7 +43,6 @@ export const useContactStore = create<ContactStoreState>()(
   devtools(
     persist(
       (set, get) => ({
-        // Initial state
         contacts: [],
         selectedContacts: [],
         isLoading: false,
@@ -53,14 +50,12 @@ export const useContactStore = create<ContactStoreState>()(
         showAddForm: false,
         setShowAddForm: (show: boolean) => set({ showAddForm: show }),
 
-        // Add new contact
         addContact: async (contactData: ContactCreateInput) => {
           set({ isLoading: true, error: null });
 
           try {
             const currentContacts = get().contacts;
 
-            // Check for duplicate email
             const existingContactByEmail = currentContacts.find(
               (contact) =>
                 contact.email.toLowerCase() === contactData.email.toLowerCase()
@@ -75,7 +70,6 @@ export const useContactStore = create<ContactStoreState>()(
               throw new Error(errorMessage);
             }
 
-            // Check for duplicate phone number
             const existingContactByPhone = currentContacts.find(
               (contact) => contact.phone === contactData.phone
             );
@@ -89,7 +83,7 @@ export const useContactStore = create<ContactStoreState>()(
               throw new Error(errorMessage);
             }
 
-            const authState = useAuthStore.getState(); // <-- get fresh state
+            const authState = useAuthStore.getState();
             const user = authState.user;
             if (!user) {
               throw new Error("User not logged in");
@@ -103,7 +97,6 @@ export const useContactStore = create<ContactStoreState>()(
               status: "pending",
             };
 
-            // Store contact in secure storage if has push token
             if (newContact.pushToken) {
               await SecureStore.setItemAsync(
                 `contact_token_${newContact.id}`,
@@ -146,7 +139,6 @@ export const useContactStore = create<ContactStoreState>()(
           }
         },
 
-        // Accept contact request (from invitation)
         acceptRequest: async (invitationData: ContactCreateInput) => {
           set({ isLoading: true, error: null });
           try {
@@ -171,7 +163,6 @@ export const useContactStore = create<ContactStoreState>()(
               isLoading: false,
             });
 
-            // Send push notification to the contact requester if they have an FCM token
             if (invitationData.pushToken) {
               try {
                 await sendPushNotification({
@@ -192,7 +183,6 @@ export const useContactStore = create<ContactStoreState>()(
                   "⚠️ Failed to send push notification:",
                   notificationError
                 );
-                // Don't throw error as the main operation (adding contact) was successful
               }
             }
 

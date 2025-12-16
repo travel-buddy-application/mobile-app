@@ -29,7 +29,6 @@ export const usePermissionsStore = create<PermissionsState>()(
   devtools(
     persist(
       (set, get) => ({
-        // Initial state
         permissions: {
           location: false,
           notifications: false,
@@ -38,16 +37,13 @@ export const usePermissionsStore = create<PermissionsState>()(
         isLoading: false,
         error: null,
 
-        // Check current permission status
         checkPermissions: async () => {
           set({ isLoading: true, error: null });
 
           try {
-            // Location
             const locationStatus =
               await Location.getForegroundPermissionsAsync();
 
-            // Notifications
             let notificationsGranted = false;
             if (!isExpoGo) {
               try {
@@ -79,7 +75,6 @@ export const usePermissionsStore = create<PermissionsState>()(
           }
         },
 
-        // Request location
         requestLocationPermission: async () => {
           set({ isLoading: true, error: null });
           try {
@@ -102,7 +97,6 @@ export const usePermissionsStore = create<PermissionsState>()(
           }
         },
 
-        // Request notifications
         requestNotificationPermission: async () => {
           set({ isLoading: true, error: null });
           try {
@@ -137,7 +131,6 @@ export const usePermissionsStore = create<PermissionsState>()(
           }
         },
 
-        // Request all
         requestAllPermissions: async () => {
           set({ isLoading: true, error: null });
           try {
@@ -165,7 +158,6 @@ export const usePermissionsStore = create<PermissionsState>()(
           }
         },
 
-        // Reset permissions (clear state + storage)
         resetPermissions: async () => {
           set({
             permissions: {
@@ -178,7 +170,6 @@ export const usePermissionsStore = create<PermissionsState>()(
           });
         },
 
-        // Clear error
         clearError: () => set({ error: null }),
       }),
       {

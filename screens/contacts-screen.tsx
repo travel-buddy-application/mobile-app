@@ -12,15 +12,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export const ContactsScreen: React.FC = () => {
   const { contacts, setShowAddForm, showAddForm } = useContactStore();
-
-  // Theme colors
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
         <ThemedView style={styles.header}>
           <ThemedText type="title" style={styles.title}>
             Emergency Contacts
@@ -30,7 +27,6 @@ export const ContactsScreen: React.FC = () => {
           </ThemedText>
         </ThemedView>
 
-        {/* Add Contact Button */}
         <ThemedButton
           title="+ Add Emergency Contact"
           onPress={() => setShowAddForm(true)}
@@ -39,14 +35,12 @@ export const ContactsScreen: React.FC = () => {
           type="add"
         />
 
-        {/* Add Contact Form */}
         {showAddForm && (
           <ThemedView style={styles.formContainer}>
             <AddContactForm />
           </ThemedView>
         )}
 
-        {/* Contacts List */}
         {contacts.length > 0 ? (
           <ThemedView style={styles.contactsList}>
             {contacts.map((contact) => (

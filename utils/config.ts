@@ -36,7 +36,6 @@ const productionConfig: Partial<Config> = {
   apiBaseUrl: "https://api.travel-buddy.com/v1",
 };
 
-// Determine environment
 const getEnvironment = (): "development" | "staging" | "production" => {
   if (__DEV__) {
     return "development";
@@ -51,7 +50,6 @@ const getEnvironment = (): "development" | "staging" | "production" => {
   return "production";
 };
 
-// Get environment-specific config
 const getEnvironmentConfig = (env: string): Partial<Config> => {
   switch (env) {
     case "development":
@@ -65,7 +63,6 @@ const getEnvironmentConfig = (env: string): Partial<Config> => {
   }
 };
 
-// Merge configurations
 const createConfig = (): Config => {
   const environment = getEnvironment();
   const environmentConfig = getEnvironmentConfig(environment);
@@ -78,10 +75,8 @@ const createConfig = (): Config => {
   };
 };
 
-// Export the merged configuration
 export const config = createConfig();
 
-// Export individual config sections for convenience
 export const {
   apiBaseUrl,
   appName,
@@ -90,12 +85,10 @@ export const {
   api: apiConfig,
 } = config;
 
-// Utility functions for config access
 export const isProduction = () => environment === "production";
 export const isDevelopment = () => environment === "development";
 export const isStaging = () => environment === "staging";
 
-// API endpoint builders
 export const buildApiUrl = (endpoint: string): string => {
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint.slice(1) : endpoint;
   return `${apiBaseUrl}/${cleanEndpoint}`;
