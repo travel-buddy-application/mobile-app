@@ -65,7 +65,7 @@ export class StationaryDetectionService {
 
     const distance = calculateDistance(this.referenceLocation, location);
 
-    if (distance > 60) {
+    if (distance > 30) {
       this.referenceLocation = location;
       this.startTime = Date.now();
     } else {
